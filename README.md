@@ -6,7 +6,7 @@ Prototype implementation of a Godot-first, source-grounded diagnostic reasoning 
 
 - FastAPI backend with typed Pydantic contracts.
 - SQLAlchemy/Postgres persistence with Alembic migrations and pgvector support.
-- Local-source ingestion for de-identified JSON, Markdown, and optional PDF files.
+- Local-source ingestion for de-identified JSON, Markdown, optional PDF files, and MultiCaRe Parquet case shards.
 - Backend-authoritative gameplay workflows for starting runs, turns, diagnosis submission, scoring, and case review.
 - Ollama adapters for generation and embeddings, with deterministic fallbacks for development when Ollama is unavailable.
 - Godot 4.x GDScript client shell for the diagnostic workstation UI.
@@ -17,12 +17,28 @@ Prototype implementation of a Godot-first, source-grounded diagnostic reasoning 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\python -m pip install --upgrade pip
-.\.venv\Scripts\python -m pip install -e .[dev,pdf]
+.\.venv\Scripts\python -m pip install -e .[dev,pdf,multicare]
 docker compose up -d postgres
 $env:DIAGNOSTICIAN_DATABASE_URL="postgresql+psycopg://diagnostician:diagnostician@localhost:5432/diagnostician"
 .\.venv\Scripts\python -m alembic -c backend/alembic.ini upgrade head
 .\.venv\Scripts\python -m diagnostician.ingestion.cli ingest cases/source
 .\.venv\Scripts\python -m uvicorn diagnostician.api.main:app --reload
+```
+
+## MultiCaRe data
+
+Download the text-only MultiCaRe case database from Hugging Face:
+
+```powershell
+hf download OpenMed/multicare-cases --repo-type dataset --include '*.parquet' --include 'README.md' --local-dir data/multicare-cases
+```
+
+The parser also accepts the original `mauro-nievoff/MultiCaRe_Dataset` `cases.parquet` file. Avoid downloading the whole multimodal repo unless image assets are needed; the full repo includes multi-GB image archives.
+
+The ingestion CLI accepts the downloaded Parquet shard directly. MultiCaRe rows are imported as review-draft cases because the dataset has source narratives and demographics, but no verified final-diagnosis field.
+
+```powershell
+.\.venv\Scripts\python -m diagnostician.ingestion.cli ingest data/multicare-cases --limit 25
 ```
 
 Ollama is expected at `http://localhost:11434`. Install and pull the configured models separately:

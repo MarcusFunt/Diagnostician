@@ -31,6 +31,9 @@ dev = [
 pdf = [
   "pypdf>=5.0"
 ]
+multicare = [
+  "pyarrow>=16.0"
+]
 
 [tool.setuptools.packages.find]
 where = ["backend"]

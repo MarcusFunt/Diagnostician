@@ -16,15 +16,17 @@ def main() -> None:
     ingest_parser = subparsers.add_parser("ingest")
     ingest_parser.add_argument("path", help="Source file or directory to ingest.")
     ingest_parser.add_argument("--json", action="store_true", help="Print machine-readable report.")
+    ingest_parser.add_argument("--limit", type=int, help="Maximum number of source records to ingest.")
+    ingest_parser.add_argument("--offset", type=int, default=0, help="Number of source records to skip.")
 
     args = parser.parse_args()
     if args.command == "ingest":
-        reports = ingest(args.path)
+        reports = ingest(args.path, limit=args.limit, offset=args.offset)
         if args.json:
             print(json.dumps([dump_model(report) for report in reports], indent=2))
         else:
             for report in reports:
-                status = "playable" if report.playable else "blocked"
+                status = "playable" if report.playable else "accepted" if report.accepted else "blocked"
                 print(f"{report.source_document_id}: {status}")
                 for error in report.errors:
                     print(f"  error: {error}")
@@ -32,18 +34,26 @@ def main() -> None:
                     print(f"  warning: {warning}")
 
 
-def ingest(path: str):
+def ingest(path: str, *, limit: int | None = None, offset: int = 0):
     ingestor = LocalCaseIngestor()
     source_paths = _source_paths(Path(path))
     reports = []
+    remaining = limit
     with SessionLocal() as session:
         store = SqlAlchemyGameStore(session)
-        for source_path in source_paths:
-            result = ingestor.ingest_path(source_path)
-            store.save_source_document(result.source_document)
-            if result.truth_case is not None and result.report.accepted:
-                store.save_truth_case(result.truth_case, result.embeddings)
-            reports.append(result.report)
+        for index, source_path in enumerate(source_paths):
+            path_offset = offset if index == 0 else 0
+            for result in ingestor.ingest_path_many(source_path, limit=remaining, offset=path_offset):
+                store.save_source_document(result.source_document)
+                if result.truth_case is not None and result.report.accepted:
+                    store.save_truth_case(result.truth_case, result.embeddings)
+                reports.append(result.report)
+                if remaining is not None:
+                    remaining -= 1
+                    if remaining <= 0:
+                        break
+            if remaining is not None and remaining <= 0:
+                break
     return reports
 
 
@@ -53,7 +63,7 @@ def _source_paths(path: Path) -> list[Path]:
     return sorted(
         item
         for item in path.iterdir()
-        if item.suffix.lower() in {".json", ".md", ".markdown", ".txt", ".pdf"}
+        if item.suffix.lower() in {".json", ".md", ".markdown", ".txt", ".pdf", ".parquet"}
     )
 
 

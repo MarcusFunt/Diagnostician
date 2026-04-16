@@ -94,7 +94,7 @@ class SourceDocument(BaseModel):
     id: UUID = Field(default_factory=uuid4)
     path: str
     title: str
-    source_type: Literal["json", "markdown", "pdf", "text"] = "json"
+    source_type: Literal["json", "markdown", "pdf", "text", "multicare"] = "json"
     deidentified: bool = True
     citation: str | None = None
     raw_text: str | None = None

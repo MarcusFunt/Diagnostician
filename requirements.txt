@@ -1,1 +1,1 @@
--e .[dev,pdf]
+-e .[dev,pdf,multicare]
