@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: diagnostician
+      POSTGRES_PASSWORD: diagnostician
+      POSTGRES_DB: diagnostician
+    ports:
+      - "5432:5432"
+    volumes:
+      - diagnostician-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U diagnostician -d diagnostician"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file:
+      - .env.example
+    environment:
+      DIAGNOSTICIAN_DATABASE_URL: postgresql+psycopg://diagnostician:diagnostician@postgres:5432/diagnostician
+      DIAGNOSTICIAN_OLLAMA_BASE_URL: http://host.docker.internal:11434
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./cases:/app/cases:ro
+
+volumes:
+  diagnostician-postgres:

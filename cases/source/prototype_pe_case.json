@@ -1,0 +1,325 @@
+{
+  "source": {
+    "title": "Prototype de-identified chest pain case",
+    "deidentified": true,
+    "citation": "Local prototype case file for Diagnostician development.",
+    "raw_text": "De-identified educational case source assembled for prototype validation."
+  },
+  "case": {
+    "title": "Acute pleuritic chest pain after travel",
+    "review_status": "approved",
+    "demographics": {
+      "age": 43,
+      "sex": "female"
+    },
+    "chief_complaint": "Sudden pleuritic chest pain and shortness of breath.",
+    "final_diagnosis": "Pulmonary embolism",
+    "diagnosis_aliases": [
+      "PE",
+      "acute pulmonary embolism"
+    ],
+    "difficulty": "prototype",
+    "specialty": "emergency medicine",
+    "tags": [
+      "pulmonary embolism",
+      "venous thromboembolism",
+      "pleuritic chest pain",
+      "dyspnea"
+    ],
+    "max_facts_per_turn": 2,
+    "teaching_points": [
+      "Pleuritic chest pain with dyspnea and tachycardia should prompt structured risk assessment for venous thromboembolic disease.",
+      "A normal chest radiograph does not exclude a vascular cause of acute dyspnea.",
+      "Definitive review should connect the final diagnosis to the source-backed CTA and risk-factor findings."
+    ],
+    "facts": [
+      {
+        "category": "chief_complaint",
+        "label": "Opening concern",
+        "value": "The patient reports sudden sharp chest pain that worsens with deep inspiration, along with shortness of breath.",
+        "initially_visible": true,
+        "reveal_actions": [
+          "ask_patient_question"
+        ],
+        "tags": [
+          "pain",
+          "dyspnea"
+        ],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "source summary",
+            "quote": "Sudden pleuritic chest pain and shortness of breath."
+          }
+        ]
+      },
+      {
+        "category": "timeline",
+        "label": "Symptom onset",
+        "value": "Symptoms began abruptly about two hours before arrival.",
+        "initially_visible": true,
+        "reveal_actions": [
+          "ask_patient_question"
+        ],
+        "tags": [
+          "onset"
+        ],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "history",
+            "quote": "Abrupt onset two hours before evaluation."
+          }
+        ]
+      },
+      {
+        "category": "symptom",
+        "label": "Associated symptoms",
+        "value": "She denies fever, productive cough, and hemoptysis.",
+        "reveal_actions": [
+          "ask_patient_question"
+        ],
+        "tags": [
+          "fever",
+          "cough",
+          "hemoptysis"
+        ],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "review of systems",
+            "quote": "No fever, no productive cough, no hemoptysis."
+          }
+        ]
+      },
+      {
+        "category": "social_history",
+        "label": "Recent travel",
+        "value": "She returned yesterday from a long-haul flight and reports sitting for most of the trip.",
+        "reveal_actions": [
+          "ask_patient_question"
+        ],
+        "tags": [
+          "travel",
+          "immobility"
+        ],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "social history",
+            "quote": "Returned yesterday from a long-haul flight."
+          }
+        ]
+      },
+      {
+        "category": "medication",
+        "label": "Medication history",
+        "value": "She takes a combined estrogen-containing oral contraceptive.",
+        "reveal_actions": [
+          "ask_patient_question"
+        ],
+        "tags": [
+          "medications",
+          "estrogen"
+        ],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "medications",
+            "quote": "Combined oral contraceptive use."
+          }
+        ]
+      },
+      {
+        "category": "vital",
+        "label": "Triage vitals",
+        "value": "Heart rate is 118/min, blood pressure 126/78 mmHg, respiratory rate 24/min, oxygen saturation 93% on room air, temperature 37.1 C.",
+        "reveal_actions": [
+          "request_exam_detail"
+        ],
+        "tags": [
+          "tachycardia",
+          "hypoxemia",
+          "vitals"
+        ],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "vitals",
+            "quote": "HR 118, BP 126/78, RR 24, SpO2 93% RA, T 37.1 C."
+          }
+        ]
+      },
+      {
+        "category": "physical_exam",
+        "label": "Cardiopulmonary exam",
+        "value": "Lungs are clear to auscultation. Heart rhythm is regular but tachycardic. No unilateral leg swelling is documented.",
+        "reveal_actions": [
+          "request_exam_detail"
+        ],
+        "tags": [
+          "exam",
+          "lungs",
+          "leg swelling"
+        ],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "exam",
+            "quote": "Clear lungs, regular tachycardia, no unilateral leg swelling."
+          }
+        ]
+      },
+      {
+        "category": "lab",
+        "label": "CBC and chemistry",
+        "value": "CBC and basic chemistry are within reference limits.",
+        "reveal_actions": [
+          "order_lab"
+        ],
+        "tags": [
+          "cbc",
+          "chemistry"
+        ],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "labs",
+            "quote": "CBC and chemistry within reference limits."
+          }
+        ]
+      },
+      {
+        "category": "lab",
+        "label": "D-dimer",
+        "value": "D-dimer is elevated at 2.8 mg/L FEU.",
+        "reveal_actions": [
+          "order_lab"
+        ],
+        "tags": [
+          "d-dimer",
+          "coagulation"
+        ],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "labs",
+            "quote": "D-dimer 2.8 mg/L FEU."
+          }
+        ]
+      },
+      {
+        "category": "lab",
+        "label": "Troponin",
+        "value": "High-sensitivity troponin is not elevated on the initial sample.",
+        "reveal_actions": [
+          "order_lab"
+        ],
+        "tags": [
+          "troponin",
+          "cardiac"
+        ],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "labs",
+            "quote": "Initial high-sensitivity troponin not elevated."
+          }
+        ]
+      },
+      {
+        "category": "imaging",
+        "label": "Chest radiograph",
+        "value": "Chest radiograph shows no focal consolidation, pleural effusion, or pneumothorax.",
+        "reveal_actions": [
+          "order_imaging"
+        ],
+        "tags": [
+          "xray",
+          "chest radiograph"
+        ],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "imaging",
+            "quote": "No focal consolidation, pleural effusion, or pneumothorax."
+          }
+        ]
+      },
+      {
+        "category": "imaging",
+        "label": "CT pulmonary angiography",
+        "value": "CT angiography shows segmental intraluminal filling defects in the right lower-lobe pulmonary arterial branches.",
+        "reveal_actions": [
+          "order_imaging"
+        ],
+        "tags": [
+          "ctpa",
+          "cta",
+          "filling defect"
+        ],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "imaging",
+            "quote": "Segmental intraluminal filling defects in right lower-lobe pulmonary arterial branches."
+          }
+        ]
+      },
+      {
+        "category": "differential_tag",
+        "label": "Dangerous differential",
+        "value": "A vascular cause of pleuritic chest pain should remain on the differential with this risk-factor pattern.",
+        "reveal_actions": [
+          "submit_differential"
+        ],
+        "tags": [
+          "vascular",
+          "venous thromboembolism"
+        ],
+        "provenance": [
+          {
+            "kind": "approved_synthetic_safe_connective_detail",
+            "locator": "derived teaching",
+            "quote": "Risk-factor pattern supports vascular differential consideration."
+          }
+        ]
+      },
+      {
+        "category": "hint",
+        "label": "Hint 1",
+        "value": "Focus on causes of pleuritic chest pain with tachycardia, mild hypoxemia, and recent immobility.",
+        "reveal_actions": [
+          "request_hint"
+        ],
+        "tags": [
+          "hint"
+        ],
+        "provenance": [
+          {
+            "kind": "approved_synthetic_safe_connective_detail",
+            "locator": "derived hint",
+            "quote": "Pleuritic pain, tachycardia, hypoxemia, recent immobility."
+          }
+        ]
+      },
+      {
+        "category": "diagnosis",
+        "label": "Final diagnosis",
+        "value": "Pulmonary embolism supported by compatible symptoms, risk factors, and CT angiography findings.",
+        "spoiler": true,
+        "reveal_actions": [],
+        "tags": [
+          "diagnosis"
+        ],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "diagnosis",
+            "quote": "Final diagnosis: pulmonary embolism."
+          }
+        ]
+      }
+    ]
+  }
+}
