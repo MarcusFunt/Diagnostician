@@ -263,6 +263,12 @@ ul {
   gap: 0.8rem;
 }
 
+.load-more-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
 .case-card-grid {
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
 }

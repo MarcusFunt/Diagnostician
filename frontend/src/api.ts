@@ -1,5 +1,5 @@
 import type {
-  CaseSummary,
+  CaseListResponse,
   CaseReview,
   DiagnosisSubmission,
   PlayerTurnRequest,
@@ -14,8 +14,33 @@ const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:800
   "",
 );
 
-export async function listCases(): Promise<CaseSummary[]> {
-  return request<CaseSummary[]>("/cases");
+export interface CaseListParams {
+  specialty?: string;
+  difficulty?: string;
+  q?: string;
+  limit?: number;
+  cursor?: string | null;
+}
+
+export async function listCases(params: CaseListParams = {}): Promise<CaseListResponse> {
+  const query = new URLSearchParams();
+  if (params.specialty) {
+    query.set("specialty", params.specialty);
+  }
+  if (params.difficulty) {
+    query.set("difficulty", params.difficulty);
+  }
+  if (params.q) {
+    query.set("q", params.q);
+  }
+  if (params.limit) {
+    query.set("limit", String(params.limit));
+  }
+  if (params.cursor) {
+    query.set("cursor", params.cursor);
+  }
+  const suffix = query.toString() ? `?${query}` : "";
+  return request<CaseListResponse>(`/cases${suffix}`);
 }
 
 export async function createRun(payload: RunCreateRequest = {}): Promise<TurnResponse> {

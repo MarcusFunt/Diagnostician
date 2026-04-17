@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from diagnostician.core.config import get_settings
 from diagnostician.core.schemas import (
-    CaseSummary,
+    CaseListResponse,
     CaseReview,
     DiagnosisSubmission,
     PlayerTurnRequest,
@@ -56,22 +56,42 @@ def health() -> dict:
     }
 
 
-@app.get("/cases", response_model=list[CaseSummary])
+@app.get("/cases", response_model=CaseListResponse)
 def list_cases(
     specialty: str | None = None,
     difficulty: str | None = None,
+    q: str | None = None,
+    limit: int = 24,
+    cursor: str | None = None,
     store: GameStore = Depends(get_store),
-) -> list[CaseSummary]:
-    return [_case_summary(case) for case in store.list_approved_cases(specialty, difficulty)]
+) -> CaseListResponse:
+    items, next_cursor, total_estimate = store.list_case_summaries(
+        specialty=specialty,
+        difficulty=difficulty,
+        q=q,
+        limit=limit,
+        cursor=cursor,
+    )
+    return CaseListResponse(items=items, next_cursor=next_cursor, total_estimate=total_estimate)
 
 
-@app.get("/cases/approved", response_model=list[CaseSummary])
+@app.get("/cases/approved", response_model=CaseListResponse)
 def list_approved_cases(
     specialty: str | None = None,
     difficulty: str | None = None,
+    q: str | None = None,
+    limit: int = 24,
+    cursor: str | None = None,
     store: GameStore = Depends(get_store),
-) -> list[CaseSummary]:
-    return list_cases(specialty=specialty, difficulty=difficulty, store=store)
+) -> CaseListResponse:
+    return list_cases(
+        specialty=specialty,
+        difficulty=difficulty,
+        q=q,
+        limit=limit,
+        cursor=cursor,
+        store=store,
+    )
 
 
 @app.post("/runs", response_model=TurnResponse)
@@ -131,21 +151,3 @@ def get_review(
         return workflow.get_review(run_id)
     except KeyError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-
-
-def _case_summary(case) -> CaseSummary:
-    diagnosis_terms = {_normalize_tag(term) for term in [case.final_diagnosis, *case.diagnosis_aliases]}
-    safe_tags = [tag for tag in case.tags if _normalize_tag(tag) not in diagnosis_terms]
-    return CaseSummary(
-        id=case.id,
-        title=case.title,
-        chief_complaint=case.chief_complaint,
-        difficulty=case.difficulty,
-        specialty=case.specialty,
-        tags=safe_tags,
-        created_at=case.created_at,
-    )
-
-
-def _normalize_tag(value: str) -> str:
-    return " ".join(value.casefold().replace("-", " ").split())

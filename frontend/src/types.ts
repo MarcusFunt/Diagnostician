@@ -10,6 +10,12 @@ export interface CaseSummary {
   created_at: string;
 }
 
+export interface CaseListResponse {
+  items: CaseSummary[];
+  next_cursor: string | null;
+  total_estimate: number;
+}
+
 export type ActionType =
   | "ask_patient_question"
   | "request_exam_detail"

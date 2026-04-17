@@ -21,9 +21,11 @@ def test_api_lists_safe_case_summaries():
 
         assert response.status_code == 200
         payload = response.json()
-        assert len(payload) == 8
-        assert "final_diagnosis" not in payload[0]
-        assert all("pulmonary embolism" not in tag.casefold() for item in payload for tag in item["tags"])
+        assert payload["total_estimate"] == 8
+        assert len(payload["items"]) == 8
+        assert payload["next_cursor"] is None
+        assert "final_diagnosis" not in payload["items"][0]
+        assert all("pulmonary embolism" not in tag.casefold() for item in payload["items"] for tag in item["tags"])
     finally:
         app.dependency_overrides.clear()
 
@@ -63,6 +65,38 @@ def test_api_run_turn_diagnosis_review_flow():
         review = client.get(f"/runs/{run_id}/review")
         assert review.status_code == 200
         assert review.json()["diagnosis"] == "Pulmonary embolism"
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_api_case_listing_supports_pagination_and_search():
+    store = demo_store()
+
+    def override_workflow():
+        return DiagnosticWorkflow(store=store, llm_client=FakeLLMClient())
+
+    app.dependency_overrides[get_workflow] = override_workflow
+    app.dependency_overrides[get_store] = lambda: store
+    try:
+        client = TestClient(app)
+        first = client.get("/cases?limit=3")
+        assert first.status_code == 200
+        payload = first.json()
+        assert len(payload["items"]) == 3
+        assert payload["total_estimate"] == 8
+        assert payload["next_cursor"] == "3"
+
+        second = client.get(f"/cases?limit=3&cursor={payload['next_cursor']}")
+        assert second.status_code == 200
+        assert len(second.json()["items"]) == 3
+
+        searched = client.get("/cases?q=chest")
+        assert searched.status_code == 200
+        assert searched.json()["total_estimate"] >= 1
+        assert any(
+            "chest" in " ".join([item["title"], item["chief_complaint"], *item["tags"]]).casefold()
+            for item in searched.json()["items"]
+        )
     finally:
         app.dependency_overrides.clear()
 

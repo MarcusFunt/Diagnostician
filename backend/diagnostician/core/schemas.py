@@ -190,6 +190,14 @@ class CaseSummary(BaseModel):
     created_at: datetime
 
 
+class CaseListResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    items: list[CaseSummary] = Field(default_factory=list)
+    next_cursor: str | None = None
+    total_estimate: int
+
+
 class VisibleEvidence(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

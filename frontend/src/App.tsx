@@ -67,12 +67,17 @@ const ACTIONS: ActionOption[] = [
 ];
 
 const SEEN_CASES_KEY = "diagnostician.seenCaseIds";
+const SEEN_CASE_LIMIT = 200;
+const CASE_PAGE_SIZE = 24;
 
 export default function App() {
   const [cases, setCases] = useState<CaseSummary[]>([]);
   const [selectedCaseId, setSelectedCaseId] = useState<UUID | "">("");
   const [specialtyFilter, setSpecialtyFilter] = useState("");
   const [difficultyFilter, setDifficultyFilter] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [caseCursor, setCaseCursor] = useState<string | null>(null);
+  const [totalCaseEstimate, setTotalCaseEstimate] = useState(0);
   const [avoidReplay, setAvoidReplay] = useState(true);
   const [seenCaseIds, setSeenCaseIds] = useState<UUID[]>(() => readSeenCases());
 
@@ -97,16 +102,6 @@ export default function App() {
   const specialties = useMemo(() => uniqueValues(cases.map((item) => item.specialty)), [cases]);
   const difficulties = useMemo(() => uniqueValues(cases.map((item) => item.difficulty)), [cases]);
 
-  const filteredCases = useMemo(
-    () =>
-      cases.filter(
-        (item) =>
-          (!specialtyFilter || item.specialty === specialtyFilter) &&
-          (!difficultyFilter || item.difficulty === difficultyFilter),
-      ),
-    [cases, difficultyFilter, specialtyFilter],
-  );
-
   const selectedCase = useMemo(
     () => cases.find((item) => item.id === selectedCaseId) ?? null,
     [cases, selectedCaseId],
@@ -120,21 +115,37 @@ export default function App() {
   const isComplete = runState?.status === "complete" || review !== null;
   const evidenceGroups = useMemo(() => groupEvidence(evidence), [evidence]);
 
-  const loadCaseLibrary = useCallback(async () => {
-    setStatus("Loading cases...");
+  const loadCaseLibrary = useCallback(async (cursor: string | null = null, append = false) => {
+    setStatus(append ? "Loading more cases..." : "Loading cases...");
     setError(null);
     try {
-      const items = await listCases();
-      setCases(items);
-      setStatus(items.length > 0 ? `${items.length} demo cases ready.` : "No demo cases available.");
+      const response = await listCases({
+        specialty: specialtyFilter || undefined,
+        difficulty: difficultyFilter || undefined,
+        q: searchQuery.trim() || undefined,
+        limit: CASE_PAGE_SIZE,
+        cursor,
+      });
+      setCases((current) =>
+        append ? uniqueCases([...current, ...response.items]) : response.items,
+      );
+      setCaseCursor(response.next_cursor);
+      setTotalCaseEstimate(response.total_estimate);
+      setStatus(
+        response.total_estimate > 0
+          ? `${response.total_estimate} playable cases available.`
+          : "No playable cases available.",
+      );
     } catch (caught) {
       setStatus("Backend unavailable");
       setError(caught instanceof Error ? caught.message : "Unable to load cases.");
     }
-  }, []);
+  }, [difficultyFilter, searchQuery, specialtyFilter]);
 
   useEffect(() => {
-    void loadCaseLibrary();
+    setSelectedCaseId("");
+    setCaseCursor(null);
+    void loadCaseLibrary(null, false);
   }, [loadCaseLibrary]);
 
   const applyTurnResponse = useCallback((response: TurnResponse, replaceBlocks = false) => {
@@ -148,7 +159,7 @@ export default function App() {
 
   const rememberSeenCase = useCallback((caseId: UUID) => {
     setSeenCaseIds((current) => {
-      const next = current.includes(caseId) ? current : [...current, caseId];
+      const next = current.includes(caseId) ? current : [...current, caseId].slice(-SEEN_CASE_LIMIT);
       window.localStorage.setItem(SEEN_CASES_KEY, JSON.stringify(next));
       return next;
     });
@@ -278,7 +289,7 @@ export default function App() {
     setRationale("");
     setTarget("");
     setPlayerText("");
-    setStatus(cases.length > 0 ? `${cases.length} demo cases ready.` : "Choose a case.");
+    setStatus(totalCaseEstimate > 0 ? `${totalCaseEstimate} playable cases available.` : "Choose a case.");
   }
 
   return (
@@ -317,21 +328,25 @@ export default function App() {
 
       {runState === null ? (
         <StartScreen
-          cases={filteredCases}
-          allCasesCount={cases.length}
+          cases={cases}
+          allCasesCount={totalCaseEstimate}
           selectedCaseId={selectedCaseId}
           selectedCase={selectedCase}
           specialties={specialties}
           difficulties={difficulties}
           specialtyFilter={specialtyFilter}
           difficultyFilter={difficultyFilter}
+          searchQuery={searchQuery}
+          hasMoreCases={caseCursor !== null}
           avoidReplay={avoidReplay}
           seenCaseIds={seenCaseIds}
           isBusy={isBusy}
           onSelectCase={setSelectedCaseId}
           onSpecialtyChange={setSpecialtyFilter}
           onDifficultyChange={setDifficultyFilter}
+          onSearchChange={setSearchQuery}
           onAvoidReplayChange={setAvoidReplay}
+          onLoadMore={() => void loadCaseLibrary(caseCursor, true)}
           onStartRandom={() => void startCase("")}
           onStartSelected={() => void startCase(selectedCaseId)}
         />
@@ -486,13 +501,17 @@ function StartScreen({
   difficulties,
   specialtyFilter,
   difficultyFilter,
+  searchQuery,
+  hasMoreCases,
   avoidReplay,
   seenCaseIds,
   isBusy,
   onSelectCase,
   onSpecialtyChange,
   onDifficultyChange,
+  onSearchChange,
   onAvoidReplayChange,
+  onLoadMore,
   onStartRandom,
   onStartSelected,
 }: {
@@ -504,13 +523,17 @@ function StartScreen({
   difficulties: string[];
   specialtyFilter: string;
   difficultyFilter: string;
+  searchQuery: string;
+  hasMoreCases: boolean;
   avoidReplay: boolean;
   seenCaseIds: UUID[];
   isBusy: boolean;
   onSelectCase: (id: UUID | "") => void;
   onSpecialtyChange: (value: string) => void;
   onDifficultyChange: (value: string) => void;
+  onSearchChange: (value: string) => void;
   onAvoidReplayChange: (value: boolean) => void;
+  onLoadMore: () => void;
   onStartRandom: () => void;
   onStartSelected: () => void;
 }) {
@@ -520,7 +543,7 @@ function StartScreen({
         <div className="section-heading">
           <div>
             <p className="eyebrow">Case library</p>
-            <h2>{cases.length} available cases</h2>
+            <h2>{allCasesCount} available cases</h2>
           </div>
           <button type="button" onClick={onStartRandom} disabled={isBusy || allCasesCount === 0}>
             Start random case
@@ -528,6 +551,14 @@ function StartScreen({
         </div>
 
         <div className="filters">
+          <label>
+            Search
+            <input
+              value={searchQuery}
+              onChange={(event) => onSearchChange(event.target.value)}
+              placeholder="Title, specialty, difficulty..."
+            />
+          </label>
           <label>
             Specialty
             <select value={specialtyFilter} onChange={(event) => onSpecialtyChange(event.target.value)}>
@@ -583,6 +614,13 @@ function StartScreen({
             <p className="empty-state">No cases match the selected filters.</p>
           )}
         </div>
+        {hasMoreCases ? (
+          <div className="load-more-row">
+            <button type="button" onClick={onLoadMore} disabled={isBusy}>
+              Load more cases
+            </button>
+          </div>
+        ) : null}
       </section>
 
       <aside className="selected-case-panel" aria-label="Selected case">
@@ -734,11 +772,26 @@ function uniqueValues(values: Array<string | null>): string[] {
   return Array.from(new Set(values.filter((value): value is string => Boolean(value)))).sort();
 }
 
+function uniqueCases(values: CaseSummary[]): CaseSummary[] {
+  const seen = new Set<UUID>();
+  const unique: CaseSummary[] = [];
+  for (const item of values) {
+    if (seen.has(item.id)) {
+      continue;
+    }
+    seen.add(item.id);
+    unique.push(item);
+  }
+  return unique;
+}
+
 function readSeenCases(): UUID[] {
   try {
     const raw = window.localStorage.getItem(SEEN_CASES_KEY);
     const parsed: unknown = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed.filter((item): item is UUID => typeof item === "string") : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is UUID => typeof item === "string").slice(-SEEN_CASE_LIMIT)
+      : [];
   } catch {
     return [];
   }

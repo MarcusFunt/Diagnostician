@@ -1,3 +1,5 @@
+import pytest
+
 from diagnostician.core.schemas import (
     ActionType,
     DisplayBlock,
@@ -10,6 +12,8 @@ from diagnostician.core.schemas import (
     ValidationStatus,
 )
 from diagnostician.core.config import Settings
+from diagnostician.ingestion.parser import LocalCaseIngestor
+from diagnostician.services.store import InMemoryGameStore
 from diagnostician.services.workflows import DiagnosticWorkflow
 from diagnostician.services.validation import validate_display_blocks
 
@@ -151,6 +155,55 @@ def test_case_selection_supports_direct_filters_and_replay_avoidance():
     excluded = [case.id for case in cases[:-1]]
     replay_aware = workflow.create_run(RunCreateRequest(exclude_case_ids=excluded, randomize=False))
     assert replay_aware.run_state.case_id == cases[-1].id
+
+
+def test_automatically_parsed_multicare_case_is_playable(tmp_path):
+    pa = pytest.importorskip("pyarrow")
+    pq = pytest.importorskip("pyarrow.parquet")
+    source = tmp_path / "cases.parquet"
+    table = pa.Table.from_pylist(
+        [
+            {
+                "article_id": "PMC222222",
+                "cases": [
+                    {
+                        "age": 64,
+                        "case_id": "PMC222222_01",
+                        "case_text": (
+                            "A 64-year-old male presented with fever and productive cough. "
+                            "Chest radiograph showed right lower-lobe consolidation. "
+                            "White blood cell count was elevated. "
+                            "Sputum culture confirmed Streptococcus pneumoniae pneumonia."
+                        ),
+                        "gender": "Male",
+                    }
+                ],
+            }
+        ]
+    )
+    pq.write_table(table, source)
+    result = next(LocalCaseIngestor(llm_client=FakeLLMClient()).ingest_path_many(source))
+    assert result.truth_case is not None
+
+    store = InMemoryGameStore()
+    store.save_source_document(result.source_document)
+    store.save_truth_case(result.truth_case, result.embeddings)
+    workflow = DiagnosticWorkflow(store=store, llm_client=FakeLLMClient())
+
+    created = workflow.create_run(RunCreateRequest(case_id=result.truth_case.id))
+    assert created.run_state.status == RunStatus.ACTIVE
+    assert "pneumonia" not in _response_text(created)
+
+    imaging = workflow.handle_turn(
+        created.run_state.id,
+        PlayerTurnRequest(action_type=ActionType.ORDER_IMAGING, target="chest radiograph"),
+    )
+    assert imaging.validation.status == ValidationStatus.PASS
+    review = workflow.submit_diagnosis(
+        created.run_state.id,
+        DiagnosisSubmission(diagnosis="Streptococcus pneumoniae pneumonia", rationale="Culture and radiograph"),
+    )
+    assert review.player_score.correct is True
 
 
 def test_reveal_logic_requires_relevant_target_match():

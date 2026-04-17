@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
-import random
 import re
 from typing import Any
 from uuid import UUID
@@ -442,26 +441,10 @@ class DiagnosticWorkflow:
         return response
 
     def _select_case(self, request: RunCreateRequest) -> TruthCase:
-        if request.case_id is not None:
-            truth_case = self.store.get_case(request.case_id)
-            if not truth_case.approved_for_play:
-                raise ValueError("Requested case is not approved for play.")
-            return truth_case
-
-        cases = self.store.list_approved_cases(
-            specialty=request.specialty,
-            difficulty=request.difficulty,
-        )
-        if request.exclude_case_ids:
-            excluded = set(request.exclude_case_ids)
-            filtered = [case for case in cases if case.id not in excluded]
-            if filtered:
-                cases = filtered
-        if not cases:
+        truth_case = self.store.select_approved_case(request)
+        if truth_case is None:
             raise ValueError("No approved playable cases are available.")
-        if request.randomize:
-            return random.choice(cases)
-        return cases[0]
+        return truth_case
 
     def _allowed_new_facts(
         self, truth_case: TruthCase, run_state: RunState, request: PlayerTurnRequest
