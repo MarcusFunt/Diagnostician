@@ -85,6 +85,9 @@ export interface RunState {
   hint_count: number;
   turn_count: number;
   score: number | null;
+  case_story: string;
+  run_summary: string;
+  story_fact_ids: UUID[];
   created_at: string;
   updated_at: string;
 }

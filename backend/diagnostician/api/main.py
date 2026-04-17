@@ -49,6 +49,9 @@ def health() -> dict:
         "ok": True,
         "ollama": ollama,
         "generation_model": settings.generation_model,
+        "case_generator_model": settings.case_generator_model,
+        "medical_check_model": settings.medical_check_model,
+        "medical_check_enabled": settings.medical_check_enabled,
         "embedding_model": settings.embedding_model,
     }
 

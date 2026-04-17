@@ -40,7 +40,11 @@ def test_api_run_turn_diagnosis_review_flow():
 
         created = client.post("/runs", json={})
         assert created.status_code == 200
-        run_id = created.json()["run_state"]["id"]
+        created_payload = created.json()
+        run_id = created_payload["run_state"]["id"]
+        assert "case_story" in created_payload["run_state"]
+        assert "run_summary" in created_payload["run_state"]
+        assert "story_fact_ids" in created_payload["run_state"]
 
         turn = client.post(
             f"/runs/{run_id}/turns",

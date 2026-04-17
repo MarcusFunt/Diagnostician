@@ -38,6 +38,16 @@ $env:DIAGNOSTICIAN_DATABASE_URL="postgresql+psycopg://diagnostician:diagnosticia
 .\.venv\Scripts\python -m uvicorn diagnostician.api.main:app --reload
 ```
 
+## Local model setup
+
+The backend can generate per-run case stories and audit them with local Ollama models. On Windows, run the setup script to scan hardware, write `.env`, pull the selected Qwen3 generator, pull the Med42 medical checker, and start the backend Docker services:
+
+```powershell
+.\scripts\setup-backend.ps1
+```
+
+The scanner picks a Qwen3 model from available RAM/VRAM. A 16 GB RAM laptop with integrated graphics selects the non-thinking `qwen3:4b-instruct` tag, disables the local Med42 checker, and keeps Qwen warm briefly so play relies on Qwen plus deterministic spoiler validation. Systems with at least 24 GB RAM or 8 GB VRAM keep Med42 enabled. Override any generated setting in `.env` before starting the backend if you want a specific model.
+
 ## MultiCaRe data
 
 Download the text-only MultiCaRe case database from Hugging Face:
@@ -54,10 +64,11 @@ The ingestion CLI accepts the downloaded Parquet shard directly. MultiCaRe rows 
 .\.venv\Scripts\python -m diagnostician.ingestion.cli ingest data/multicare-cases --limit 25
 ```
 
-Ollama is expected at `http://localhost:11434`. Install and pull the configured models separately:
+Ollama is expected at `http://localhost:11434`. If you do not use `scripts/setup-backend.ps1`, install and pull the configured models separately:
 
 ```powershell
-ollama pull llama3.1
+ollama pull qwen3:4b-instruct
+ollama pull hf.co/tensorblock/Llama3-Med42-8B-GGUF # only when DIAGNOSTICIAN_MEDICAL_CHECK_ENABLED=true
 ollama pull nomic-embed-text
 ```
 

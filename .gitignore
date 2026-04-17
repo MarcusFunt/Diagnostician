@@ -1,7 +1,11 @@
 .venv/
+venv/
+env/
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.pytest-tmp/
+pytest-cache-files-*/
 .ruff_cache/
 .mypy_cache/
 .env
@@ -15,6 +19,7 @@ dist/
 *.egg-info/
 
 # Node / frontend
+node_modules/
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
@@ -23,3 +28,4 @@ frontend/.vite/
 # Local runtime data
 data/
 logs/
+*.parquet

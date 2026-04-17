@@ -222,6 +222,9 @@ class RunState(BaseModel):
     hint_count: int = 0
     turn_count: int = 0
     score: int | None = None
+    case_story: str = ""
+    run_summary: str = ""
+    story_fact_ids: list[UUID] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
 

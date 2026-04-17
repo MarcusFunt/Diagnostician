@@ -5,7 +5,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
-from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 from diagnostician.core.schemas import (
     ActionType,
@@ -232,6 +232,7 @@ class LocalCaseIngestor:
 def _source_from_json(source_path: Path, data: dict[str, Any]) -> SourceDocument:
     source_data = data.get("source", {})
     return SourceDocument(
+        id=UUID(str(source_data["id"])) if source_data.get("id") else _stable_uuid("json-source", source_path.as_posix()),
         path=str(source_path),
         title=source_data.get("title") or data.get("title") or source_path.stem.replace("_", " ").title(),
         source_type="json",
@@ -255,14 +256,24 @@ def _source_from_multicare_record(source_path: Path, record: MultiCareCaseRecord
 
 def _truth_case_from_json(data: dict[str, Any], source: SourceDocument) -> TruthCase:
     case_data = data.get("case", data)
-    case_id = UUID(str(case_data["id"])) if case_data.get("id") else uuid4()
+    case_id = UUID(str(case_data["id"])) if case_data.get("id") else _stable_uuid("json-case", source.path, case_data["title"])
     provenance: list[Provenance] = []
     facts: list[CaseFact] = []
 
-    for item in case_data.get("facts", []):
+    for index, item in enumerate(case_data.get("facts", [])):
         provenance_ids: list[UUID] = []
-        for prov_item in item.get("provenance", []):
+        fact_id = (
+            UUID(str(item["id"]))
+            if item.get("id")
+            else _stable_uuid("json-fact", case_id, index, item["category"], item["label"])
+        )
+        for prov_index, prov_item in enumerate(item.get("provenance", [])):
             prov = Provenance(
+                id=(
+                    UUID(str(prov_item["id"]))
+                    if prov_item.get("id")
+                    else _stable_uuid("json-provenance", fact_id, prov_index)
+                ),
                 source_document_id=source.id,
                 kind=ProvenanceKind(prov_item.get("kind", ProvenanceKind.SOURCE_PARAPHRASE)),
                 locator=prov_item.get("locator"),
@@ -273,7 +284,7 @@ def _truth_case_from_json(data: dict[str, Any], source: SourceDocument) -> Truth
             provenance_ids.append(prov.id)
 
         fact = CaseFact(
-            id=UUID(str(item["id"])) if item.get("id") else uuid4(),
+            id=fact_id,
             case_id=case_id,
             category=FactCategory(item["category"]),
             label=item["label"],
