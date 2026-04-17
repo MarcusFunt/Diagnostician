@@ -14,10 +14,11 @@ build/
 dist/
 *.egg-info/
 
-# Godot
-.godot/
-godot/.godot/
-*.tmp
+# Node / frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+*.tsbuildinfo
 
 # Local runtime data
 data/

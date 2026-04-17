@@ -1,7 +1,7 @@
-Engineering specification: Godot-first AI medical diagnostics game
+Engineering specification: React/Vite AI medical diagnostics game
 Product vision
 
-Build a single-player PC diagnostic reasoning game in Godot where the player works through realistic medical cases step by step. The player should feel like they are doing actual clinical reasoning rather than chatting with a hallucinating chatbot.
+Build a single-player web diagnostic reasoning game in React where the player works through realistic medical cases step by step. The player should feel like they are doing actual clinical reasoning rather than chatting with a hallucinating chatbot.
 
 The game must therefore be built around a strict separation between:
 
@@ -51,7 +51,7 @@ This architecture is chosen because it gives a much more accurate and controllab
 
 2. The backend is authoritative
 
-Gameplay-critical logic must live in the backend, not in the Godot client and not inside prompts alone.
+Gameplay-critical logic must live in the backend, not in the web client and not inside prompts alone.
 
 The backend is responsible for:
 
@@ -63,7 +63,7 @@ running the LLM workflow,
 validating generated output,
 and persisting the session.
 
-The Godot client is responsible for:
+The React client is responsible for:
 
 rendering the experience,
 collecting user input,
@@ -86,20 +86,20 @@ and structured outputs.
 This is exactly why LangGraph is appropriate: it fits stateful, multi-step orchestration with checkpoints and controlled data flow. LangChain may be used as glue, wrappers, and structured generation helpers, but it should not define the architecture by itself.
 
 Technology choices and reasoning
-Godot for the client
+React, Vite, and TypeScript for the client
 
-The game is planned around Godot from the start, not as an afterthought.
+The game is planned around a browser-based React client from the start, not as an afterthought.
 
-Godot is chosen because:
+React, Vite, and TypeScript are chosen because:
 
-it is a real game engine rather than a generic desktop UI framework,
-it handles scenes, structured UI flows, input, transitions, persistence, and packaging cleanly,
-it is well suited to a 2D interface-heavy game,
-and it leaves room for future expansion into more game-like features without forcing a rewrite.
+React fits a structured, component-driven diagnostic workstation interface,
+TypeScript keeps the client aligned with the backend's typed request and response contracts,
+Vite keeps local development and production builds fast and simple,
+and the browser target makes iteration, testing, and distribution straightforward.
 
-The project should target Godot 4.x and begin with GDScript unless there is a compelling implementation reason to use C#.
+The project should target React + Vite + TypeScript and keep client logic typed at the API boundary.
 
-The game should be scene-based and UI-driven. The visual design should feel like a professional diagnostic terminal or workstation, with clearly separated panels for story, evidence, tests, notes, and player actions.
+The game should be component-based and UI-driven. The visual design should feel like a professional diagnostic terminal or workstation, with clearly separated panels for story, evidence, tests, notes, and player actions.
 
 Python for the backend
 
@@ -180,7 +180,7 @@ This is chosen because:
 it works cleanly with Pydantic,
 it is fast enough for this use case,
 it encourages typed request/response contracts,
-and it is a clean interface between Godot and the backend.
+and it is a clean interface between the React client and the backend.
 
 The client-backend boundary should be JSON over HTTP.
 
@@ -409,7 +409,7 @@ generate an opening presentation,
 validate it for consistency,
 validate it for spoiler leakage,
 persist the result,
-and return a structured payload to the Godot client.
+and return a structured payload to the React client.
 
 The opening should feel natural, but it should only be built from facts that are legitimately visible at that stage.
 
@@ -417,7 +417,7 @@ Turn flow
 
 On each player turn, the system should:
 
-receive the turn request from the Godot client,
+receive the turn request from the React client,
 classify the action type,
 determine which facts are currently visible and which new facts are allowed,
 retrieve only the relevant structured case slice for this turn,
@@ -510,32 +510,32 @@ and semantic relevance if needed.
 
 Retrieval should be based on normalized case objects rather than raw PDFs or raw prose. The purpose of retrieval is not just to fetch text; it is to fetch a structured truth case that the rest of the engine can trust.
 
-Godot client structure
-Scene-first design
+React client structure
+Component-first design
 
-The Godot project should be scene-based.
+The React project should be component-based.
 
-Expected major scenes include:
+Expected major surfaces include:
 
-main menu,
+main menu or landing route,
 case selection or new-run setup,
-the main case-play scene,
+the main case-play workspace,
 evidence and review panels,
 settings,
 and end-of-case summary.
 
-The main case scene should be the primary play surface and contain the major UI panels.
+The main case workspace should be the primary play surface and contain the major UI panels.
 
 Client responsibilities
 
-The Godot client should:
+The React client should:
 
 request a new run from the backend,
 submit player turn requests,
 render the backend’s structured response blocks,
 maintain local UI state,
 display current evidence cleanly,
-manage scene transitions,
+manage route or screen transitions,
 and preserve local settings.
 
 The client should not try to infer gameplay-critical truth on its own.
@@ -556,7 +556,7 @@ warning,
 hint,
 system status.
 
-The Godot client should render these block types differently. That gives a much better experience than dumping all content into a chat transcript.
+The React client should render these block types differently. That gives a much better experience than dumping all content into a chat transcript.
 
 API philosophy
 
@@ -632,7 +632,7 @@ This is needed both for the actual product and for development/debugging.
 
 Client persistence
 
-The Godot client may persist:
+The React client may persist:
 
 settings,
 presentation preferences,
@@ -680,6 +680,6 @@ Preserve provenance for medically meaningful clues.
 Make the system debuggable at every turn.
 Final framing
 
-This product should be implemented as a Godot-first, source-grounded, backend-authoritative diagnostic reasoning game. It uses real medical case data as the immutable truth layer, a Python backend for orchestration and persistence, Ollama for local inference and embeddings, LangGraph for stateful workflow execution, and strict schema validation to control what the model may say and when it may say it.
+This product should be implemented as a React/Vite-first, source-grounded, backend-authoritative diagnostic reasoning game. It uses real medical case data as the immutable truth layer, a Python backend for orchestration and persistence, Ollama for local inference and embeddings, LangGraph for stateful workflow execution, and strict schema validation to control what the model may say and when it may say it.
 
 The point is not to build a chatbot that pretends to know medicine. The point is to build a game engine that can present medicine in a realistic, interactive, and controlled way.

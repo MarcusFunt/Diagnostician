@@ -1,6 +1,6 @@
 # Diagnostician
 
-Prototype implementation of a Godot-first, source-grounded diagnostic reasoning game.
+Prototype implementation of a React/Vite, source-grounded diagnostic reasoning game.
 
 ## What is included
 
@@ -9,7 +9,7 @@ Prototype implementation of a Godot-first, source-grounded diagnostic reasoning 
 - Local-source ingestion for de-identified JSON, Markdown, optional PDF files, and MultiCaRe Parquet case shards.
 - Backend-authoritative gameplay workflows for starting runs, turns, diagnosis submission, scoring, and case review.
 - Ollama adapters for generation and embeddings, with deterministic fallbacks for development when Ollama is unavailable.
-- Godot 4.x GDScript client shell for the diagnostic workstation UI.
+- React + Vite + TypeScript client shell for the diagnostic workstation UI.
 - Tests for ingestion, reveal policy, validation, scoring, and API behavior.
 
 ## Local backend setup
@@ -56,6 +56,12 @@ Set `DIAGNOSTICIAN_REQUIRE_OLLAMA=true` when you want ingestion and generation t
 .\.venv\Scripts\python -m pytest
 ```
 
-## Godot client
+## React client
 
-Open the `godot/` folder in Godot 4.x and run `scenes/main.tscn`. The client expects the backend at `http://127.0.0.1:8000`.
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Open `http://127.0.0.1:5173`. The client expects the backend at `http://127.0.0.1:8000` by default. To point it elsewhere, set `VITE_API_BASE_URL` before running the dev server.
