@@ -39,6 +39,24 @@ class MultiCareCaseRecord:
     gender: str | None
 
 
+def load_cases_from_parquet(
+    path: str | Path = "cases.parquet", *, limit: int | None = None, offset: int = 0
+) -> Iterator[IngestionResult]:
+    """Load MultiCaRe cases from a Parquet file without persisting them."""
+    source_path = Path(path)
+    if not source_path.exists():
+        raise FileNotFoundError(source_path)
+    if source_path.suffix.lower() != ".parquet":
+        raise ValueError(f"Expected a .parquet file, got: {source_path}")
+    if limit is not None and limit < 0:
+        raise ValueError("limit must be greater than or equal to 0")
+    if offset < 0:
+        raise ValueError("offset must be greater than or equal to 0")
+
+    for record in _iter_multicare_case_records(source_path, limit=limit, offset=offset):
+        yield _ingestion_result_from_multicare_record(source_path, record)
+
+
 DEFAULT_ACTION_CATEGORY_MAP: dict[ActionType, list[FactCategory]] = {
     ActionType.ASK_PATIENT_QUESTION: [
         FactCategory.CHIEF_COMPLAINT,
@@ -208,29 +226,7 @@ class LocalCaseIngestor:
     def _ingest_multicare_parquet(
         self, source_path: Path, *, limit: int | None = None, offset: int = 0
     ) -> Iterator[IngestionResult]:
-        for record in _iter_multicare_case_records(source_path, limit=limit, offset=offset):
-            source = _source_from_multicare_record(source_path, record)
-            errors: list[str] = []
-            warnings: list[str] = [
-                "MultiCaRe source was imported as a review draft. Add a reviewed final diagnosis and structured facts before approving it for play."
-            ]
-
-            try:
-                truth_case = _truth_case_from_multicare_record(record, source)
-                _validate_truth_case(truth_case, errors, warnings)
-            except Exception as exc:
-                truth_case = None
-                errors.append(str(exc))
-
-            report = IngestionReport(
-                source_document_id=source.id,
-                case_id=truth_case.id if truth_case else None,
-                accepted=truth_case is not None and not errors,
-                playable=False,
-                errors=errors,
-                warnings=warnings,
-            )
-            yield IngestionResult(source, truth_case if not errors else None, report, {})
+        yield from load_cases_from_parquet(source_path, limit=limit, offset=offset)
 
 
 def _source_from_json(source_path: Path, data: dict[str, Any]) -> SourceDocument:
@@ -387,6 +383,31 @@ def _truth_case_from_multicare_record(record: MultiCareCaseRecord, source: Sourc
         reveal_policy=reveal_policy,
         teaching_points=[],
     )
+
+
+def _ingestion_result_from_multicare_record(source_path: Path, record: MultiCareCaseRecord) -> IngestionResult:
+    source = _source_from_multicare_record(source_path, record)
+    errors: list[str] = []
+    warnings: list[str] = [
+        "MultiCaRe source was imported as a review draft. Add a reviewed final diagnosis and structured facts before approving it for play."
+    ]
+
+    try:
+        truth_case = _truth_case_from_multicare_record(record, source)
+        _validate_truth_case(truth_case, errors, warnings)
+    except Exception as exc:
+        truth_case = None
+        errors.append(str(exc))
+
+    report = IngestionReport(
+        source_document_id=source.id,
+        case_id=truth_case.id if truth_case else None,
+        accepted=truth_case is not None and not errors,
+        playable=False,
+        errors=errors,
+        warnings=warnings,
+    )
+    return IngestionResult(source, truth_case if not errors else None, report, {})
 
 
 def _validate_truth_case(truth_case: TruthCase, errors: list[str], warnings: list[str]) -> None:

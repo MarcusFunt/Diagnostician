@@ -5,6 +5,10 @@ from dataclasses import dataclass, field
 from typing import Protocol
 from uuid import UUID, uuid4
 
+from diagnostician.core.windows_platform import disable_slow_wmi_platform_probe
+
+disable_slow_wmi_platform_probe()
+
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 

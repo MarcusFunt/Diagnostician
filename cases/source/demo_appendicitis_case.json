@@ -1,0 +1,208 @@
+{
+  "source": {
+    "title": "Demo reviewed right lower quadrant pain case",
+    "deidentified": true,
+    "citation": "Local reviewed educational case file for Diagnostician demo content.",
+    "raw_text": "De-identified educational case source assembled and reviewed for demo validation."
+  },
+  "case": {
+    "title": "Migrating abdominal pain with anorexia",
+    "review_status": "approved",
+    "demographics": {
+      "age": 24,
+      "sex": "male"
+    },
+    "chief_complaint": "Abdominal pain with nausea.",
+    "final_diagnosis": "Acute appendicitis",
+    "diagnosis_aliases": [
+      "appendicitis",
+      "acute appendicitis"
+    ],
+    "difficulty": "intro",
+    "specialty": "emergency medicine",
+    "tags": [
+      "acute appendicitis",
+      "abdominal pain",
+      "surgical abdomen"
+    ],
+    "max_facts_per_turn": 2,
+    "teaching_points": [
+      "Pain migration, anorexia, focal right lower quadrant tenderness, and inflammatory markers support the final diagnosis.",
+      "A normal urinalysis can help redirect away from urinary causes when the abdominal exam localizes.",
+      "Imaging should be interpreted with the clinical pattern rather than used as an isolated answer."
+    ],
+    "facts": [
+      {
+        "category": "chief_complaint",
+        "label": "Opening concern",
+        "value": "The patient reports abdominal pain with nausea and poor appetite.",
+        "initially_visible": true,
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["pain", "nausea", "appetite"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "source summary",
+            "quote": "Abdominal pain with nausea and anorexia."
+          }
+        ]
+      },
+      {
+        "category": "timeline",
+        "label": "Pain migration",
+        "value": "The pain began near the umbilicus overnight and moved to the right lower abdomen by morning.",
+        "initially_visible": true,
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["onset", "migration", "right lower quadrant"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "history",
+            "quote": "Periumbilical pain migrated to the right lower quadrant."
+          }
+        ]
+      },
+      {
+        "category": "symptom",
+        "label": "Associated symptoms",
+        "value": "He has nausea and one episode of non-bloody emesis, without diarrhea.",
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["vomiting", "diarrhea", "nausea"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "review of systems",
+            "quote": "Nausea, one non-bloody emesis, no diarrhea."
+          }
+        ]
+      },
+      {
+        "category": "past_medical_history",
+        "label": "Surgical history",
+        "value": "He has no prior abdominal operations and no known inflammatory bowel disease.",
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["surgery", "bowel disease"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "past history",
+            "quote": "No prior abdominal surgery; no known IBD."
+          }
+        ]
+      },
+      {
+        "category": "vital",
+        "label": "Triage vitals",
+        "value": "Temperature is 38.1 C, heart rate 104/min, blood pressure 118/72 mmHg, respiratory rate 18/min, oxygen saturation 99% on room air.",
+        "reveal_actions": ["request_exam_detail"],
+        "tags": ["fever", "tachycardia", "vitals"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "vitals",
+            "quote": "T 38.1 C, HR 104, BP 118/72, RR 18, SpO2 99% RA."
+          }
+        ]
+      },
+      {
+        "category": "physical_exam",
+        "label": "Abdominal exam",
+        "value": "The abdomen is soft but focally tender in the right lower quadrant with mild guarding.",
+        "reveal_actions": ["request_exam_detail"],
+        "tags": ["abdomen", "right lower quadrant", "guarding"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "exam",
+            "quote": "Soft abdomen, RLQ tenderness, mild guarding."
+          }
+        ]
+      },
+      {
+        "category": "lab",
+        "label": "CBC",
+        "value": "White blood cell count is 14.6 x 10^9/L with neutrophil predominance.",
+        "reveal_actions": ["order_lab"],
+        "tags": ["cbc", "white blood cell", "neutrophil"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "labs",
+            "quote": "WBC 14.6 x 10^9/L with neutrophil predominance."
+          }
+        ]
+      },
+      {
+        "category": "lab",
+        "label": "Urinalysis",
+        "value": "Urinalysis shows no nitrites, leukocyte esterase, or hematuria.",
+        "reveal_actions": ["order_lab"],
+        "tags": ["urinalysis", "urine", "hematuria"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "labs",
+            "quote": "UA negative for nitrites, leukocyte esterase, and blood."
+          }
+        ]
+      },
+      {
+        "category": "imaging",
+        "label": "CT abdomen and pelvis",
+        "value": "CT shows an enlarged blind-ending tubular structure in the right lower quadrant with surrounding fat stranding and no abscess.",
+        "reveal_actions": ["order_imaging"],
+        "tags": ["ct", "abdomen", "right lower quadrant", "fat stranding"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "imaging",
+            "quote": "Enlarged appendix with periappendiceal fat stranding; no abscess."
+          }
+        ]
+      },
+      {
+        "category": "differential_tag",
+        "label": "Dangerous differential",
+        "value": "A time-sensitive surgical abdominal process should remain high on the differential with this pattern.",
+        "reveal_actions": ["submit_differential"],
+        "tags": ["surgical abdomen", "right lower quadrant"],
+        "provenance": [
+          {
+            "kind": "approved_synthetic_safe_connective_detail",
+            "locator": "derived teaching",
+            "quote": "RLQ pain with guarding and leukocytosis supports urgent surgical consideration."
+          }
+        ]
+      },
+      {
+        "category": "hint",
+        "label": "Hint 1",
+        "value": "Track how the location of the pain changed and connect that to the focal exam finding.",
+        "reveal_actions": ["request_hint"],
+        "tags": ["hint", "migration", "exam"],
+        "provenance": [
+          {
+            "kind": "approved_synthetic_safe_connective_detail",
+            "locator": "derived hint",
+            "quote": "Pain migration plus focal RLQ tenderness is the key pattern."
+          }
+        ]
+      },
+      {
+        "category": "diagnosis",
+        "label": "Final diagnosis",
+        "value": "Acute appendicitis supported by migrating pain, focal right lower quadrant tenderness, leukocytosis, and CT findings.",
+        "spoiler": true,
+        "reveal_actions": [],
+        "tags": ["diagnosis"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "diagnosis",
+            "quote": "Final diagnosis: acute appendicitis."
+          }
+        ]
+      }
+    ]
+  }
+}

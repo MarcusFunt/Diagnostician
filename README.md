@@ -1,16 +1,29 @@
 # Diagnostician
 
-Prototype implementation of a React/Vite, source-grounded diagnostic reasoning game.
+Demo implementation of a React/Vite, source-grounded diagnostic reasoning game.
 
 ## What is included
 
 - FastAPI backend with typed Pydantic contracts.
 - SQLAlchemy/Postgres persistence with Alembic migrations and pgvector support.
 - Local-source ingestion for de-identified JSON, Markdown, optional PDF files, and MultiCaRe Parquet case shards.
+- Eight approved demo cases with provenance, reveal policy, spoiler-locked diagnoses, and teaching points.
 - Backend-authoritative gameplay workflows for starting runs, turns, diagnosis submission, scoring, and case review.
 - Ollama adapters for generation and embeddings, with deterministic fallbacks for development when Ollama is unavailable.
-- React + Vite + TypeScript client shell for the diagnostic workstation UI.
+- React + Vite + TypeScript diagnostic workstation with case browsing, replay avoidance, evidence panels, differential tracking, and review.
 - Tests for ingestion, reveal policy, validation, scoring, and API behavior.
+
+## Fast demo setup
+
+The Docker Compose stack starts Postgres, migrates the database, seeds the approved demo cases from `cases/source`, starts the FastAPI backend, and serves the built frontend.
+
+```powershell
+docker compose up --build
+```
+
+Open `http://127.0.0.1:5173`. The frontend calls the backend at `http://127.0.0.1:8000`.
+
+Ollama is optional for the demo. If Ollama is unavailable and `DIAGNOSTICIAN_REQUIRE_OLLAMA=false`, generation and embeddings use deterministic development fallbacks so the game remains playable.
 
 ## Local backend setup
 
@@ -21,7 +34,7 @@ python -m venv .venv
 docker compose up -d postgres
 $env:DIAGNOSTICIAN_DATABASE_URL="postgresql+psycopg://diagnostician:diagnostician@localhost:5432/diagnostician"
 .\.venv\Scripts\python -m alembic -c backend/alembic.ini upgrade head
-.\.venv\Scripts\python -m diagnostician.ingestion.cli ingest cases/source
+.\.venv\Scripts\python -m diagnostician.ingestion.cli seed-demo --path cases/source
 .\.venv\Scripts\python -m uvicorn diagnostician.api.main:app --reload
 ```
 
@@ -49,6 +62,12 @@ ollama pull nomic-embed-text
 ```
 
 Set `DIAGNOSTICIAN_REQUIRE_OLLAMA=true` when you want ingestion and generation to fail instead of using deterministic development fallbacks.
+
+The lower-level ingestion command is still available for arbitrary sources:
+
+```powershell
+.\.venv\Scripts\python -m diagnostician.ingestion.cli ingest cases/source
+```
 
 ## Run tests
 

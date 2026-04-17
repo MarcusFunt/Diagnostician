@@ -26,11 +26,24 @@ services:
       DIAGNOSTICIAN_OLLAMA_BASE_URL: http://host.docker.internal:11434
     ports:
       - "8000:8000"
+    command: >
+      sh -c "alembic -c backend/alembic.ini upgrade head &&
+      python -m diagnostician.ingestion.cli seed-demo --path cases/source &&
+      uvicorn diagnostician.api.main:app --host 0.0.0.0 --port 8000"
     depends_on:
       postgres:
         condition: service_healthy
     volumes:
       - ./cases:/app/cases:ro
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
 
 volumes:
   diagnostician-postgres:

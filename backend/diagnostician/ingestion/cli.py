@@ -19,6 +19,10 @@ def main() -> None:
     ingest_parser.add_argument("--limit", type=int, help="Maximum number of source records to ingest.")
     ingest_parser.add_argument("--offset", type=int, default=0, help="Number of source records to skip.")
 
+    seed_parser = subparsers.add_parser("seed-demo")
+    seed_parser.add_argument("--path", default="cases/source", help="Demo case directory to ingest.")
+    seed_parser.add_argument("--json", action="store_true", help="Print machine-readable report.")
+
     args = parser.parse_args()
     if args.command == "ingest":
         reports = ingest(args.path, limit=args.limit, offset=args.offset)
@@ -32,6 +36,21 @@ def main() -> None:
                     print(f"  error: {error}")
                 for warning in report.warnings:
                     print(f"  warning: {warning}")
+    if args.command == "seed-demo":
+        reports = ingest(args.path)
+        playable = sum(1 for report in reports if report.playable)
+        if args.json:
+            print(json.dumps([dump_model(report) for report in reports], indent=2))
+        else:
+            print(f"Seeded {playable} playable demo cases from {args.path}.")
+            for report in reports:
+                if report.errors or report.warnings:
+                    status = "playable" if report.playable else "accepted" if report.accepted else "blocked"
+                    print(f"{report.source_document_id}: {status}")
+                    for error in report.errors:
+                        print(f"  error: {error}")
+                    for warning in report.warnings:
+                        print(f"  warning: {warning}")
 
 
 def ingest(path: str, *, limit: int | None = None, offset: int = 0):

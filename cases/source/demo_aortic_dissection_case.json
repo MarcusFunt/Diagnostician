@@ -1,0 +1,224 @@
+{
+  "source": {
+    "title": "Demo reviewed tearing chest back pain case",
+    "deidentified": true,
+    "citation": "Local reviewed educational case file for Diagnostician demo content.",
+    "raw_text": "De-identified educational case source assembled and reviewed for demo validation."
+  },
+  "case": {
+    "title": "Abrupt tearing chest pain radiating to the back",
+    "review_status": "approved",
+    "demographics": {
+      "age": 58,
+      "sex": "male"
+    },
+    "chief_complaint": "Sudden severe chest and back pain.",
+    "final_diagnosis": "Aortic dissection",
+    "diagnosis_aliases": [
+      "aortic dissection",
+      "type B aortic dissection",
+      "acute aortic syndrome"
+    ],
+    "difficulty": "advanced",
+    "specialty": "cardiology",
+    "tags": [
+      "aortic dissection",
+      "acute aortic syndrome",
+      "chest pain",
+      "hypertension"
+    ],
+    "max_facts_per_turn": 2,
+    "teaching_points": [
+      "Abrupt maximal pain radiating to the back with pulse or pressure asymmetry requires urgent vascular imaging.",
+      "A normal initial troponin does not exclude life-threatening non-coronary causes of chest pain.",
+      "Blood pressure control and anatomy determine management urgency."
+    ],
+    "facts": [
+      {
+        "category": "chief_complaint",
+        "label": "Opening concern",
+        "value": "The patient reports sudden, severe chest pain radiating between the shoulder blades.",
+        "initially_visible": true,
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["chest pain", "back pain", "sudden"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "source summary",
+            "quote": "Sudden severe chest pain radiating to the back."
+          }
+        ]
+      },
+      {
+        "category": "timeline",
+        "label": "Pain onset",
+        "value": "The pain reached maximal intensity within seconds while he was lifting a box.",
+        "initially_visible": true,
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["maximal at onset", "lifting", "seconds"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "history",
+            "quote": "Maximal intensity within seconds while lifting a box."
+          }
+        ]
+      },
+      {
+        "category": "past_medical_history",
+        "label": "Risk history",
+        "value": "He has long-standing hypertension and stopped taking his blood pressure medication last month.",
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["hypertension", "medication", "risk"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "past history",
+            "quote": "Long-standing hypertension; stopped blood pressure medication last month."
+          }
+        ]
+      },
+      {
+        "category": "symptom",
+        "label": "Associated symptoms",
+        "value": "He feels sweaty and anxious but denies cough, fever, or pleuritic pain.",
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["diaphoresis", "anxiety", "fever", "cough"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "review of systems",
+            "quote": "Diaphoresis and anxiety; no cough, fever, or pleuritic pain."
+          }
+        ]
+      },
+      {
+        "category": "vital",
+        "label": "Triage vitals",
+        "value": "Blood pressure is 196/104 mmHg in the right arm and 168/92 mmHg in the left arm; heart rate is 108/min.",
+        "reveal_actions": ["request_exam_detail"],
+        "tags": ["blood pressure", "hypertension", "arm difference", "vitals"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "vitals",
+            "quote": "BP 196/104 right arm, 168/92 left arm; HR 108."
+          }
+        ]
+      },
+      {
+        "category": "physical_exam",
+        "label": "Vascular exam",
+        "value": "The left radial pulse is slightly diminished compared with the right; neurologic exam is nonfocal.",
+        "reveal_actions": ["request_exam_detail"],
+        "tags": ["pulse", "radial", "neurologic"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "exam",
+            "quote": "Left radial pulse diminished compared with right; nonfocal neuro exam."
+          }
+        ]
+      },
+      {
+        "category": "lab",
+        "label": "Troponin",
+        "value": "Initial high-sensitivity troponin is not elevated.",
+        "reveal_actions": ["order_lab"],
+        "tags": ["troponin", "cardiac"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "labs",
+            "quote": "Initial high-sensitivity troponin not elevated."
+          }
+        ]
+      },
+      {
+        "category": "lab",
+        "label": "CBC and chemistry",
+        "value": "CBC and basic chemistry do not show an alternate explanation for the acute pain.",
+        "reveal_actions": ["order_lab"],
+        "tags": ["cbc", "chemistry"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "labs",
+            "quote": "CBC and basic chemistry unrevealing."
+          }
+        ]
+      },
+      {
+        "category": "imaging",
+        "label": "Chest radiograph",
+        "value": "Chest radiograph shows a widened mediastinal contour without pneumothorax.",
+        "reveal_actions": ["order_imaging"],
+        "tags": ["xray", "mediastinum", "pneumothorax"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "imaging",
+            "quote": "Widened mediastinal contour; no pneumothorax."
+          }
+        ]
+      },
+      {
+        "category": "imaging",
+        "label": "CTA chest",
+        "value": "CTA shows an intimal flap beginning distal to the left subclavian artery and extending through the descending thoracic aorta.",
+        "reveal_actions": ["order_imaging"],
+        "tags": ["cta", "intimal flap", "thoracic aorta", "subclavian"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "imaging",
+            "quote": "Intimal flap distal to left subclavian extending through descending thoracic aorta."
+          }
+        ]
+      },
+      {
+        "category": "differential_tag",
+        "label": "Dangerous differential",
+        "value": "A catastrophic vascular cause of chest pain should be considered with abrupt onset and asymmetric vascular findings.",
+        "reveal_actions": ["submit_differential"],
+        "tags": ["vascular", "chest pain", "blood pressure"],
+        "provenance": [
+          {
+            "kind": "approved_synthetic_safe_connective_detail",
+            "locator": "derived teaching",
+            "quote": "Abrupt pain, pulse deficit, blood pressure asymmetry, and CTA anatomy indicate vascular emergency."
+          }
+        ]
+      },
+      {
+        "category": "hint",
+        "label": "Hint 1",
+        "value": "Do not anchor on coronary disease; the asymmetric arm findings and pain quality change the priority.",
+        "reveal_actions": ["request_hint"],
+        "tags": ["hint", "vascular", "asymmetry"],
+        "provenance": [
+          {
+            "kind": "approved_synthetic_safe_connective_detail",
+            "locator": "derived hint",
+            "quote": "Pulse and pressure asymmetry are the key clues."
+          }
+        ]
+      },
+      {
+        "category": "diagnosis",
+        "label": "Final diagnosis",
+        "value": "Aortic dissection supported by abrupt tearing chest and back pain, hypertension, arm pressure difference, pulse asymmetry, and CTA intimal flap.",
+        "spoiler": true,
+        "reveal_actions": [],
+        "tags": ["diagnosis"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "diagnosis",
+            "quote": "Final diagnosis: aortic dissection."
+          }
+        ]
+      }
+    ]
+  }
+}

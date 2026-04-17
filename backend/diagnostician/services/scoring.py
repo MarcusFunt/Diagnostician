@@ -4,12 +4,21 @@ from diagnostician.core.schemas import RunState, ScoreSummary, TruthCase
 
 
 IMPORTANT_DANGEROUS_DIAGNOSES = {
-    "pulmonary embolism",
-    "myocardial infarction",
-    "sepsis",
+    "acute appendicitis",
     "aortic dissection",
-    "stroke",
+    "diabetic ketoacidosis",
+    "dka",
     "ectopic pregnancy",
+    "gi bleed",
+    "gastrointestinal bleed",
+    "hyperkalemia",
+    "meningitis",
+    "myocardial infarction",
+    "pulmonary embolism",
+    "sepsis",
+    "stroke",
+    "thyroid storm",
+    "upper gastrointestinal bleed",
 }
 
 
@@ -25,7 +34,7 @@ def score_run(truth_case: TruthCase, run_state: RunState, diagnosis: str) -> Sco
     efficiency_penalty = max(0, run_state.turn_count - 8) * 2
     testing_penalty = max(0, len(run_state.ordered_tests) - 4) * 4
     hint_penalty = run_state.hint_count * 10
-    dangerous_miss_penalty = _dangerous_miss_penalty(run_state)
+    dangerous_miss_penalty = _dangerous_miss_penalty(truth_case, run_state)
 
     raw_score = (
         diagnosis_points
@@ -70,10 +79,20 @@ def _score_differentials(truth_case: TruthCase, run_state: RunState) -> int:
     return 0
 
 
-def _dangerous_miss_penalty(run_state: RunState) -> int:
+def _dangerous_miss_penalty(truth_case: TruthCase, run_state: RunState) -> int:
+    case_terms = _dangerous_case_terms(truth_case)
+    if not case_terms:
+        return 0
     submitted = " ".join(_normalize(item) for item in run_state.submitted_differentials)
-    considered = any(item in submitted for item in IMPORTANT_DANGEROUS_DIAGNOSES)
-    return 0 if considered or not run_state.submitted_differentials else 5
+    considered = any(term in submitted for term in case_terms)
+    return 0 if considered or not run_state.submitted_differentials else 10
+
+
+def _dangerous_case_terms(truth_case: TruthCase) -> set[str]:
+    aliases = {_normalize(item) for item in truth_case.diagnosis_aliases}
+    tags = {_normalize(item) for item in truth_case.tags}
+    dangerous = {_normalize(item) for item in IMPORTANT_DANGEROUS_DIAGNOSES}
+    return {term for term in aliases | tags if term in dangerous}
 
 
 def _normalize(text: str) -> str:

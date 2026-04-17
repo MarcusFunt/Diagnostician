@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import random
+import re
 from uuid import UUID
 
 from diagnostician.core.schemas import (
@@ -216,8 +218,15 @@ class DiagnosticWorkflow:
             specialty=request.specialty,
             difficulty=request.difficulty,
         )
+        if request.exclude_case_ids:
+            excluded = set(request.exclude_case_ids)
+            filtered = [case for case in cases if case.id not in excluded]
+            if filtered:
+                cases = filtered
         if not cases:
             raise ValueError("No approved playable cases are available.")
+        if request.randomize:
+            return random.choice(cases)
         return cases[0]
 
     def _allowed_new_facts(
@@ -239,8 +248,10 @@ class DiagnosticWorkflow:
             key=lambda fact: _match_score(fact, request),
             reverse=True,
         )
-        ranked = [fact for fact in ranked if _match_score(fact, request) > 0] or ranked
-        return ranked[: policy.max_facts_per_turn]
+        matched = [fact for fact in ranked if _match_score(fact, request) > 0]
+        if not matched and request.action_type == ActionType.REQUEST_HINT:
+            matched = ranked
+        return matched[: policy.max_facts_per_turn]
 
     def _generate_turn_blocks(
         self,
@@ -412,15 +423,64 @@ def _stage_for_action(action_type: ActionType) -> str:
 
 def _match_score(fact: CaseFact, request: PlayerTurnRequest) -> int:
     query = f"{request.target or ''} {request.player_text or ''}".casefold()
+    query_tokens = _tokens(query)
+    if not query_tokens:
+        return 1
+
+    label_tokens = _tokens(fact.label)
+    value_tokens = _tokens(fact.value)
+    tag_tokens = {token for tag in fact.tags for token in _tokens(tag)}
+    category_tokens = _tokens(fact.category.value.replace("_", " "))
+    category_tokens |= {f"{token}s" for token in category_tokens}
+    fact_tokens = label_tokens | value_tokens | tag_tokens | category_tokens
+    overlap = query_tokens & fact_tokens
+
     score = 1
     if fact.label.casefold() in query:
-        score += 5
+        score += 8
     for tag in fact.tags:
         if tag.casefold() in query:
-            score += 3
+            score += 6
+    score += len(overlap) * 2
+    if query_tokens & (label_tokens | tag_tokens):
+        score += 4
     if fact.category.value.replace("_", " ") in query:
-        score += 2
-    return score
+        score += 1
+    return score if overlap or score > 2 else 0
+
+
+def _tokens(text: str) -> set[str]:
+    stop_words = {
+        "a",
+        "an",
+        "and",
+        "are",
+        "at",
+        "can",
+        "could",
+        "do",
+        "for",
+        "have",
+        "is",
+        "me",
+        "of",
+        "on",
+        "or",
+        "please",
+        "request",
+        "show",
+        "tell",
+        "the",
+        "there",
+        "to",
+        "what",
+        "with",
+    }
+    return {
+        token
+        for token in re.findall(r"[a-z0-9]+", text.casefold().replace("-", " "))
+        if len(token) > 1 and token not in stop_words
+    }
 
 
 def _facts_to_response_text(request: PlayerTurnRequest, facts: list[CaseFact]) -> str:

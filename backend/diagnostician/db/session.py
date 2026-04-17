@@ -1,5 +1,9 @@
 from collections.abc import Generator
 
+from diagnostician.core.windows_platform import disable_slow_wmi_platform_probe
+
+disable_slow_wmi_platform_probe()
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
