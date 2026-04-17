@@ -1,5 +1,15 @@
 export type UUID = string;
 
+export interface CaseSummary {
+  id: UUID;
+  title: string;
+  chief_complaint: string;
+  difficulty: string;
+  specialty: string | null;
+  tags: string[];
+  created_at: string;
+}
+
 export type ActionType =
   | "ask_patient_question"
   | "request_exam_detail"
@@ -75,6 +85,9 @@ export interface RunState {
   hint_count: number;
   turn_count: number;
   score: number | null;
+  case_story: string;
+  run_summary: string;
+  story_fact_ids: UUID[];
   created_at: string;
   updated_at: string;
 }
@@ -105,6 +118,14 @@ export interface PlayerTurnRequest {
   target: string | null;
   selected_evidence_ids?: UUID[];
   client_timestamp?: string;
+}
+
+export interface RunCreateRequest {
+  case_id?: UUID | null;
+  specialty?: string | null;
+  difficulty?: string | null;
+  exclude_case_ids?: UUID[];
+  randomize?: boolean;
 }
 
 export interface DiagnosisSubmission {
@@ -142,4 +163,10 @@ export interface CaseReview {
   teaching_points: string[];
   provenance: Provenance[];
   turn_timeline: DisplayBlock[];
+}
+
+export interface RunSnapshot {
+  run_state: RunState;
+  visible_evidence: VisibleEvidence;
+  display_blocks: DisplayBlock[];
 }

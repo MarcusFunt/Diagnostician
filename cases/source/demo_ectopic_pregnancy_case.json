@@ -1,0 +1,223 @@
+{
+  "source": {
+    "title": "Demo reviewed pelvic pain early pregnancy case",
+    "deidentified": true,
+    "citation": "Local reviewed educational case file for Diagnostician demo content.",
+    "raw_text": "De-identified educational case source assembled and reviewed for demo validation."
+  },
+  "case": {
+    "title": "Pelvic pain with early pregnancy",
+    "review_status": "approved",
+    "demographics": {
+      "age": 29,
+      "sex": "female"
+    },
+    "chief_complaint": "Lower abdominal pain and vaginal spotting.",
+    "final_diagnosis": "Ectopic pregnancy",
+    "diagnosis_aliases": [
+      "ectopic pregnancy",
+      "tubal pregnancy"
+    ],
+    "difficulty": "intermediate",
+    "specialty": "obstetrics and gynecology",
+    "tags": [
+      "ectopic pregnancy",
+      "pelvic pain",
+      "pregnancy",
+      "shock"
+    ],
+    "max_facts_per_turn": 2,
+    "teaching_points": [
+      "Reproductive-age patients with pelvic pain and bleeding need pregnancy testing early.",
+      "A positive pregnancy test without an intrauterine gestation on ultrasound is a high-risk pattern.",
+      "Hemodynamic status determines urgency and management."
+    ],
+    "facts": [
+      {
+        "category": "chief_complaint",
+        "label": "Opening concern",
+        "value": "The patient reports sharp lower abdominal pain with light vaginal spotting.",
+        "initially_visible": true,
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["pelvic pain", "abdominal pain", "spotting"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "source summary",
+            "quote": "Sharp lower abdominal pain with light vaginal spotting."
+          }
+        ]
+      },
+      {
+        "category": "timeline",
+        "label": "Pain onset",
+        "value": "Pain started suddenly this morning and is worse on the right side.",
+        "initially_visible": true,
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["sudden", "right side", "onset"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "history",
+            "quote": "Sudden right-sided lower abdominal pain this morning."
+          }
+        ]
+      },
+      {
+        "category": "symptom",
+        "label": "Gynecologic history",
+        "value": "Her last menstrual period was about seven weeks ago.",
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["last menstrual period", "lmp", "pregnancy"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "gynecologic history",
+            "quote": "Last menstrual period approximately seven weeks ago."
+          }
+        ]
+      },
+      {
+        "category": "past_medical_history",
+        "label": "Risk history",
+        "value": "She has a history of pelvic inflammatory disease treated two years earlier.",
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["pelvic inflammatory disease", "pid", "risk"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "past history",
+            "quote": "History of PID treated two years prior."
+          }
+        ]
+      },
+      {
+        "category": "vital",
+        "label": "Triage vitals",
+        "value": "Heart rate is 118/min, blood pressure 94/58 mmHg, respiratory rate 20/min, temperature 37.0 C.",
+        "reveal_actions": ["request_exam_detail"],
+        "tags": ["tachycardia", "hypotension", "vitals"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "vitals",
+            "quote": "HR 118, BP 94/58, RR 20, T 37.0 C."
+          }
+        ]
+      },
+      {
+        "category": "physical_exam",
+        "label": "Pelvic and abdominal exam",
+        "value": "There is right adnexal tenderness, cervical motion tenderness, and mild lower abdominal guarding.",
+        "reveal_actions": ["request_exam_detail"],
+        "tags": ["adnexal tenderness", "cervical motion", "guarding"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "exam",
+            "quote": "Right adnexal tenderness, cervical motion tenderness, mild guarding."
+          }
+        ]
+      },
+      {
+        "category": "lab",
+        "label": "Pregnancy test",
+        "value": "Urine pregnancy test is positive.",
+        "reveal_actions": ["order_lab"],
+        "tags": ["pregnancy test", "urine", "hcg"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "labs",
+            "quote": "Urine pregnancy test positive."
+          }
+        ]
+      },
+      {
+        "category": "lab",
+        "label": "Quantitative beta-hCG",
+        "value": "Serum beta-hCG is 3,860 mIU/mL.",
+        "reveal_actions": ["order_lab"],
+        "tags": ["hcg", "beta hcg", "quantitative"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "labs",
+            "quote": "Serum beta-hCG 3860 mIU/mL."
+          }
+        ]
+      },
+      {
+        "category": "lab",
+        "label": "CBC",
+        "value": "Hemoglobin is 10.2 g/dL.",
+        "reveal_actions": ["order_lab"],
+        "tags": ["cbc", "hemoglobin"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "labs",
+            "quote": "Hemoglobin 10.2 g/dL."
+          }
+        ]
+      },
+      {
+        "category": "imaging",
+        "label": "Transvaginal ultrasound",
+        "value": "Ultrasound shows no intrauterine gestational sac, a right adnexal mass, and a small amount of free pelvic fluid.",
+        "reveal_actions": ["order_imaging"],
+        "tags": ["ultrasound", "adnexal mass", "free fluid", "gestational sac"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "imaging",
+            "quote": "No intrauterine gestation; right adnexal mass; small free fluid."
+          }
+        ]
+      },
+      {
+        "category": "differential_tag",
+        "label": "Dangerous differential",
+        "value": "A pregnancy-related surgical emergency should remain high on the differential until excluded.",
+        "reveal_actions": ["submit_differential"],
+        "tags": ["pregnancy", "surgical emergency", "shock"],
+        "provenance": [
+          {
+            "kind": "approved_synthetic_safe_connective_detail",
+            "locator": "derived teaching",
+            "quote": "Pelvic pain, bleeding, positive hCG, hypotension, and adnexal findings make this time-sensitive."
+          }
+        ]
+      },
+      {
+        "category": "hint",
+        "label": "Hint 1",
+        "value": "Do not separate the pregnancy test from the ultrasound result and vital signs.",
+        "reveal_actions": ["request_hint"],
+        "tags": ["hint", "hcg", "ultrasound", "vitals"],
+        "provenance": [
+          {
+            "kind": "approved_synthetic_safe_connective_detail",
+            "locator": "derived hint",
+            "quote": "Positive hCG plus no intrauterine gestation and instability is the key pattern."
+          }
+        ]
+      },
+      {
+        "category": "diagnosis",
+        "label": "Final diagnosis",
+        "value": "Ectopic pregnancy supported by pelvic pain, vaginal spotting, positive hCG, no intrauterine gestation, adnexal mass, and free fluid.",
+        "spoiler": true,
+        "reveal_actions": [],
+        "tags": ["diagnosis"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "diagnosis",
+            "quote": "Final diagnosis: ectopic pregnancy."
+          }
+        ]
+      }
+    ]
+  }
+}

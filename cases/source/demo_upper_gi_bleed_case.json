@@ -1,0 +1,210 @@
+{
+  "source": {
+    "title": "Demo reviewed melena syncope case",
+    "deidentified": true,
+    "citation": "Local reviewed educational case file for Diagnostician demo content.",
+    "raw_text": "De-identified educational case source assembled and reviewed for demo validation."
+  },
+  "case": {
+    "title": "Melena with near syncope",
+    "review_status": "approved",
+    "demographics": {
+      "age": 67,
+      "sex": "male"
+    },
+    "chief_complaint": "Black stools and lightheadedness.",
+    "final_diagnosis": "Upper gastrointestinal bleed",
+    "diagnosis_aliases": [
+      "upper GI bleed",
+      "upper gastrointestinal bleed",
+      "peptic ulcer bleed"
+    ],
+    "difficulty": "intermediate",
+    "specialty": "gastroenterology",
+    "tags": [
+      "upper gastrointestinal bleed",
+      "gi bleed",
+      "melena",
+      "anemia"
+    ],
+    "max_facts_per_turn": 2,
+    "teaching_points": [
+      "Melena, orthostasis, elevated BUN relative to creatinine, and endoscopic ulcer findings support an upper source.",
+      "Medication history can reveal risk from NSAIDs and antiplatelet therapy.",
+      "Hemodynamic assessment matters before definitive endoscopy."
+    ],
+    "facts": [
+      {
+        "category": "chief_complaint",
+        "label": "Opening concern",
+        "value": "The patient reports black, tarry stools and nearly fainted when standing.",
+        "initially_visible": true,
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["melena", "syncope", "lightheaded"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "source summary",
+            "quote": "Black tarry stools and near syncope when standing."
+          }
+        ]
+      },
+      {
+        "category": "timeline",
+        "label": "Bleeding timeline",
+        "value": "He noticed dark stools for two days and felt progressively weaker this morning.",
+        "initially_visible": true,
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["dark stools", "weakness", "two days"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "history",
+            "quote": "Two days dark stools; weaker this morning."
+          }
+        ]
+      },
+      {
+        "category": "symptom",
+        "label": "Associated symptoms",
+        "value": "He has mild epigastric discomfort and denies bright red blood per rectum.",
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["epigastric", "hematochezia", "bright red blood"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "review of systems",
+            "quote": "Mild epigastric discomfort; no bright red blood per rectum."
+          }
+        ]
+      },
+      {
+        "category": "medication",
+        "label": "Medication history",
+        "value": "He takes daily aspirin and frequent ibuprofen for knee pain.",
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["aspirin", "ibuprofen", "nsaid"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "medications",
+            "quote": "Daily aspirin and frequent ibuprofen."
+          }
+        ]
+      },
+      {
+        "category": "vital",
+        "label": "Triage vitals",
+        "value": "Heart rate is 116/min, blood pressure 98/60 mmHg supine and 82/54 mmHg standing, temperature 36.8 C.",
+        "reveal_actions": ["request_exam_detail"],
+        "tags": ["tachycardia", "orthostatic", "blood pressure"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "vitals",
+            "quote": "HR 116, BP 98/60 supine, 82/54 standing, T 36.8 C."
+          }
+        ]
+      },
+      {
+        "category": "physical_exam",
+        "label": "Abdominal and rectal exam",
+        "value": "The abdomen is mildly tender in the epigastrium without peritonitis; rectal exam confirms black stool.",
+        "reveal_actions": ["request_exam_detail"],
+        "tags": ["abdomen", "rectal", "black stool"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "exam",
+            "quote": "Mild epigastric tenderness; rectal exam with black stool."
+          }
+        ]
+      },
+      {
+        "category": "lab",
+        "label": "CBC",
+        "value": "Hemoglobin is 8.1 g/dL, down from a documented baseline of 13.4 g/dL.",
+        "reveal_actions": ["order_lab"],
+        "tags": ["cbc", "hemoglobin", "anemia"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "labs",
+            "quote": "Hemoglobin 8.1 g/dL from baseline 13.4 g/dL."
+          }
+        ]
+      },
+      {
+        "category": "lab",
+        "label": "Chemistry",
+        "value": "BUN is 48 mg/dL and creatinine is 1.0 mg/dL.",
+        "reveal_actions": ["order_lab"],
+        "tags": ["bun", "creatinine", "chemistry"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "chemistry",
+            "quote": "BUN 48, creatinine 1.0."
+          }
+        ]
+      },
+      {
+        "category": "procedure",
+        "label": "Upper endoscopy",
+        "value": "Endoscopy finds a gastric ulcer with a visible vessel that is treated endoscopically.",
+        "reveal_actions": ["request_pathology_detail"],
+        "tags": ["endoscopy", "ulcer", "visible vessel"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "procedure",
+            "quote": "Gastric ulcer with visible vessel treated endoscopically."
+          }
+        ]
+      },
+      {
+        "category": "differential_tag",
+        "label": "Dangerous differential",
+        "value": "A hemodynamically significant gastrointestinal blood loss process must be considered early.",
+        "reveal_actions": ["submit_differential"],
+        "tags": ["blood loss", "melena", "shock"],
+        "provenance": [
+          {
+            "kind": "approved_synthetic_safe_connective_detail",
+            "locator": "derived teaching",
+            "quote": "Melena, orthostasis, anemia, and elevated BUN support significant GI blood loss."
+          }
+        ]
+      },
+      {
+        "category": "hint",
+        "label": "Hint 1",
+        "value": "Use stool color, orthostatic vitals, hemoglobin change, and BUN pattern to localize the source.",
+        "reveal_actions": ["request_hint"],
+        "tags": ["hint", "melena", "bun"],
+        "provenance": [
+          {
+            "kind": "approved_synthetic_safe_connective_detail",
+            "locator": "derived hint",
+            "quote": "Melena plus BUN elevation helps localize the bleeding source."
+          }
+        ]
+      },
+      {
+        "category": "diagnosis",
+        "label": "Final diagnosis",
+        "value": "Upper gastrointestinal bleed from a peptic ulcer supported by melena, orthostasis, anemia, elevated BUN, and endoscopy.",
+        "spoiler": true,
+        "reveal_actions": [],
+        "tags": ["diagnosis"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "diagnosis",
+            "quote": "Final diagnosis: upper gastrointestinal bleed due to peptic ulcer."
+          }
+        ]
+      }
+    ]
+  }
+}

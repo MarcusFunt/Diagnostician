@@ -43,14 +43,31 @@ class OllamaClient:
         except Exception as exc:  # pragma: no cover - environment dependent
             return {"ok": False, "error": str(exc)}
 
-    def generate(self, prompt: str, system: str | None = None) -> GenerationResult:
+    def generate(
+        self,
+        prompt: str,
+        system: str | None = None,
+        *,
+        model: str | None = None,
+        format: str | dict[str, Any] | None = None,
+        options: dict[str, Any] | None = None,
+        keep_alive: str | None = None,
+    ) -> GenerationResult:
+        selected_model = model or self.settings.generation_model
         payload: dict[str, Any] = {
-            "model": self.settings.generation_model,
+            "model": selected_model,
             "prompt": prompt,
             "stream": False,
         }
         if system:
             payload["system"] = system
+        if format is not None:
+            payload["format"] = format
+        if options:
+            payload["options"] = options
+        resolved_keep_alive = keep_alive if keep_alive is not None else self.settings.ollama_keep_alive
+        if resolved_keep_alive:
+            payload["keep_alive"] = resolved_keep_alive
         try:
             response = httpx.post(
                 f"{self.settings.ollama_base_url.rstrip('/')}/api/generate",
@@ -60,17 +77,35 @@ class OllamaClient:
             response.raise_for_status()
             return GenerationResult(
                 text=response.json().get("response", "").strip(),
-                model=self.settings.generation_model,
+                model=selected_model,
             )
         except Exception as exc:
             if self.settings.require_ollama:
                 raise
             return GenerationResult(
                 text="",
-                model=self.settings.generation_model,
+                model=selected_model,
                 fallback_used=True,
                 error=str(exc),
             )
+
+    def generate_json(
+        self,
+        prompt: str,
+        system: str | None = None,
+        *,
+        model: str | None = None,
+        options: dict[str, Any] | None = None,
+        keep_alive: str | None = None,
+    ) -> GenerationResult:
+        return self.generate(
+            prompt,
+            system=system,
+            model=model,
+            format="json",
+            options=options,
+            keep_alive=keep_alive,
+        )
 
     def embed(self, text: str) -> EmbeddingResult:
         payload = {"model": self.settings.embedding_model, "prompt": text}

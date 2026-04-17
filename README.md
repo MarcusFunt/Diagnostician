@@ -1,16 +1,29 @@
 # Diagnostician
 
-Prototype implementation of a React/Vite, source-grounded diagnostic reasoning game.
+Demo implementation of a React/Vite, source-grounded diagnostic reasoning game.
 
 ## What is included
 
 - FastAPI backend with typed Pydantic contracts.
 - SQLAlchemy/Postgres persistence with Alembic migrations and pgvector support.
 - Local-source ingestion for de-identified JSON, Markdown, optional PDF files, and MultiCaRe Parquet case shards.
+- Eight approved demo cases with provenance, reveal policy, spoiler-locked diagnoses, and teaching points.
 - Backend-authoritative gameplay workflows for starting runs, turns, diagnosis submission, scoring, and case review.
 - Ollama adapters for generation and embeddings, with deterministic fallbacks for development when Ollama is unavailable.
-- React + Vite + TypeScript client shell for the diagnostic workstation UI.
+- React + Vite + TypeScript diagnostic workstation with case browsing, replay avoidance, evidence panels, differential tracking, and review.
 - Tests for ingestion, reveal policy, validation, scoring, and API behavior.
+
+## Fast demo setup
+
+The Docker Compose stack starts Postgres, migrates the database, seeds the approved demo cases from `cases/source`, starts the FastAPI backend, and serves the built frontend.
+
+```powershell
+docker compose up --build
+```
+
+Open `http://127.0.0.1:5173`. The frontend calls the backend at `http://127.0.0.1:8000`.
+
+Ollama is optional for the demo. If Ollama is unavailable and `DIAGNOSTICIAN_REQUIRE_OLLAMA=false`, generation and embeddings use deterministic development fallbacks so the game remains playable.
 
 ## Local backend setup
 
@@ -21,9 +34,19 @@ python -m venv .venv
 docker compose up -d postgres
 $env:DIAGNOSTICIAN_DATABASE_URL="postgresql+psycopg://diagnostician:diagnostician@localhost:5432/diagnostician"
 .\.venv\Scripts\python -m alembic -c backend/alembic.ini upgrade head
-.\.venv\Scripts\python -m diagnostician.ingestion.cli ingest cases/source
+.\.venv\Scripts\python -m diagnostician.ingestion.cli seed-demo --path cases/source
 .\.venv\Scripts\python -m uvicorn diagnostician.api.main:app --reload
 ```
+
+## Local model setup
+
+The backend can generate per-run case stories and audit them with local Ollama models. On Windows, run the setup script to scan hardware, write `.env`, pull the selected Qwen3 generator, pull the Med42 medical checker, and start the backend Docker services:
+
+```powershell
+.\scripts\setup-backend.ps1
+```
+
+The scanner picks a Qwen3 model from available RAM/VRAM. A 16 GB RAM laptop with integrated graphics selects the non-thinking `qwen3:4b-instruct` tag, disables the local Med42 checker, and keeps Qwen warm briefly so play relies on Qwen plus deterministic spoiler validation. Systems with at least 24 GB RAM or 8 GB VRAM keep Med42 enabled. Override any generated setting in `.env` before starting the backend if you want a specific model.
 
 ## MultiCaRe data
 
@@ -41,14 +64,21 @@ The ingestion CLI accepts the downloaded Parquet shard directly. MultiCaRe rows 
 .\.venv\Scripts\python -m diagnostician.ingestion.cli ingest data/multicare-cases --limit 25
 ```
 
-Ollama is expected at `http://localhost:11434`. Install and pull the configured models separately:
+Ollama is expected at `http://localhost:11434`. If you do not use `scripts/setup-backend.ps1`, install and pull the configured models separately:
 
 ```powershell
-ollama pull llama3.1
+ollama pull qwen3:4b-instruct
+ollama pull hf.co/tensorblock/Llama3-Med42-8B-GGUF # only when DIAGNOSTICIAN_MEDICAL_CHECK_ENABLED=true
 ollama pull nomic-embed-text
 ```
 
 Set `DIAGNOSTICIAN_REQUIRE_OLLAMA=true` when you want ingestion and generation to fail instead of using deterministic development fallbacks.
+
+The lower-level ingestion command is still available for arbitrary sources:
+
+```powershell
+.\.venv\Scripts\python -m diagnostician.ingestion.cli ingest cases/source
+```
 
 ## Run tests
 

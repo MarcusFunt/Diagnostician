@@ -1,0 +1,223 @@
+{
+  "source": {
+    "title": "Demo reviewed fever agitation tachycardia case",
+    "deidentified": true,
+    "citation": "Local reviewed educational case file for Diagnostician demo content.",
+    "raw_text": "De-identified educational case source assembled and reviewed for demo validation."
+  },
+  "case": {
+    "title": "Fever, agitation, and marked tachycardia",
+    "review_status": "approved",
+    "demographics": {
+      "age": 36,
+      "sex": "female"
+    },
+    "chief_complaint": "Palpitations, fever, and confusion.",
+    "final_diagnosis": "Thyroid storm",
+    "diagnosis_aliases": [
+      "thyroid storm",
+      "thyrotoxic crisis"
+    ],
+    "difficulty": "advanced",
+    "specialty": "endocrinology",
+    "tags": [
+      "thyroid storm",
+      "thyrotoxicosis",
+      "tachycardia",
+      "fever"
+    ],
+    "max_facts_per_turn": 2,
+    "teaching_points": [
+      "Fever, agitation, severe tachycardia, gastrointestinal symptoms, and suppressed TSH with high free T4 form a high-risk endocrine pattern.",
+      "A recent medication lapse can precipitate decompensation in uncontrolled hyperthyroidism.",
+      "Scoring severity matters because treatment should not wait for every confirmatory detail."
+    ],
+    "facts": [
+      {
+        "category": "chief_complaint",
+        "label": "Opening concern",
+        "value": "The patient is brought in for palpitations, fever, and increasing confusion.",
+        "initially_visible": true,
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["palpitations", "fever", "confusion"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "source summary",
+            "quote": "Palpitations, fever, and increasing confusion."
+          }
+        ]
+      },
+      {
+        "category": "timeline",
+        "label": "Illness course",
+        "value": "Symptoms worsened over three days after a respiratory illness.",
+        "initially_visible": true,
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["three days", "respiratory illness", "worsening"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "history",
+            "quote": "Three days worsening after respiratory illness."
+          }
+        ]
+      },
+      {
+        "category": "past_medical_history",
+        "label": "Endocrine history",
+        "value": "She has Graves disease and ran out of methimazole about two weeks ago.",
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["graves", "methimazole", "medication"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "past history",
+            "quote": "Graves disease; out of methimazole for about two weeks."
+          }
+        ]
+      },
+      {
+        "category": "symptom",
+        "label": "Associated symptoms",
+        "value": "She has tremor, diarrhea, heat intolerance, and has slept poorly for several nights.",
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["tremor", "diarrhea", "heat intolerance", "sleep"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "review of systems",
+            "quote": "Tremor, diarrhea, heat intolerance, and poor sleep."
+          }
+        ]
+      },
+      {
+        "category": "vital",
+        "label": "Triage vitals",
+        "value": "Temperature is 40.1 C, heart rate 154/min, blood pressure 154/62 mmHg, respiratory rate 26/min, oxygen saturation 97% on room air.",
+        "reveal_actions": ["request_exam_detail"],
+        "tags": ["fever", "tachycardia", "vitals", "pulse pressure"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "vitals",
+            "quote": "T 40.1 C, HR 154, BP 154/62, RR 26, SpO2 97% RA."
+          }
+        ]
+      },
+      {
+        "category": "physical_exam",
+        "label": "General and neck exam",
+        "value": "She is agitated, diaphoretic, tremulous, and has a diffusely enlarged nontender thyroid gland.",
+        "reveal_actions": ["request_exam_detail"],
+        "tags": ["agitation", "diaphoresis", "tremor", "thyroid"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "exam",
+            "quote": "Agitated, diaphoretic, tremulous, diffuse nontender goiter."
+          }
+        ]
+      },
+      {
+        "category": "physical_exam",
+        "label": "Cardiac exam",
+        "value": "Cardiac rhythm is regular and very rapid without signs of pulmonary edema.",
+        "reveal_actions": ["request_exam_detail"],
+        "tags": ["cardiac", "tachycardia", "pulmonary edema"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "exam",
+            "quote": "Regular very rapid rhythm; no pulmonary edema."
+          }
+        ]
+      },
+      {
+        "category": "lab",
+        "label": "Thyroid function tests",
+        "value": "TSH is suppressed below the assay limit and free T4 is 5.8 ng/dL.",
+        "reveal_actions": ["order_lab"],
+        "tags": ["tsh", "free t4", "thyroid"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "labs",
+            "quote": "TSH suppressed below assay limit; free T4 5.8 ng/dL."
+          }
+        ]
+      },
+      {
+        "category": "lab",
+        "label": "Metabolic panel",
+        "value": "Mild transaminitis and mild hyperglycemia are present; potassium is normal.",
+        "reveal_actions": ["order_lab"],
+        "tags": ["transaminitis", "hyperglycemia", "potassium"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "chemistry",
+            "quote": "Mild transaminitis and hyperglycemia; potassium normal."
+          }
+        ]
+      },
+      {
+        "category": "imaging",
+        "label": "Chest radiograph",
+        "value": "Chest radiograph shows no pneumonia or pulmonary edema.",
+        "reveal_actions": ["order_imaging"],
+        "tags": ["xray", "pneumonia", "pulmonary edema"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "imaging",
+            "quote": "No pneumonia or pulmonary edema on chest radiograph."
+          }
+        ]
+      },
+      {
+        "category": "differential_tag",
+        "label": "Dangerous differential",
+        "value": "A life-threatening endocrine decompensation should be considered when hyperadrenergic signs occur with fever and altered mental status.",
+        "reveal_actions": ["submit_differential"],
+        "tags": ["endocrine emergency", "fever", "altered mental status"],
+        "provenance": [
+          {
+            "kind": "approved_synthetic_safe_connective_detail",
+            "locator": "derived teaching",
+            "quote": "Fever, severe tachycardia, agitation, medication lapse, and high free T4 support endocrine emergency."
+          }
+        ]
+      },
+      {
+        "category": "hint",
+        "label": "Hint 1",
+        "value": "Use the fever, severe tachycardia, agitation, diarrhea, tremor, and thyroid labs as one syndrome.",
+        "reveal_actions": ["request_hint"],
+        "tags": ["hint", "thyroid", "tachycardia"],
+        "provenance": [
+          {
+            "kind": "approved_synthetic_safe_connective_detail",
+            "locator": "derived hint",
+            "quote": "Hyperadrenergic signs plus abnormal thyroid function tests are the key pattern."
+          }
+        ]
+      },
+      {
+        "category": "diagnosis",
+        "label": "Final diagnosis",
+        "value": "Thyroid storm supported by Graves disease, antithyroid medication lapse, fever, severe tachycardia, agitation, gastrointestinal symptoms, and thyroid function tests.",
+        "spoiler": true,
+        "reveal_actions": [],
+        "tags": ["diagnosis"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "diagnosis",
+            "quote": "Final diagnosis: thyroid storm."
+          }
+        ]
+      }
+    ]
+  }
+}

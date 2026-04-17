@@ -1,0 +1,223 @@
+{
+  "source": {
+    "title": "Demo reviewed fever headache case",
+    "deidentified": true,
+    "citation": "Local reviewed educational case file for Diagnostician demo content.",
+    "raw_text": "De-identified educational case source assembled and reviewed for demo validation."
+  },
+  "case": {
+    "title": "Fever, headache, and neck stiffness",
+    "review_status": "approved",
+    "demographics": {
+      "age": 19,
+      "sex": "female"
+    },
+    "chief_complaint": "Severe headache with fever.",
+    "final_diagnosis": "Bacterial meningitis",
+    "diagnosis_aliases": [
+      "bacterial meningitis",
+      "meningitis"
+    ],
+    "difficulty": "intermediate",
+    "specialty": "infectious disease",
+    "tags": [
+      "meningitis",
+      "sepsis",
+      "headache",
+      "fever"
+    ],
+    "max_facts_per_turn": 2,
+    "teaching_points": [
+      "Fever, severe headache, altered mental status, neck stiffness, and inflammatory CSF findings require urgent treatment.",
+      "A normal head CT does not end the evaluation when the exam points to central nervous system infection.",
+      "Antimicrobial timing matters when this diagnosis is plausible."
+    ],
+    "facts": [
+      {
+        "category": "chief_complaint",
+        "label": "Opening concern",
+        "value": "The patient has a severe generalized headache with fever and photophobia.",
+        "initially_visible": true,
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["headache", "fever", "photophobia"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "source summary",
+            "quote": "Severe headache, fever, and photophobia."
+          }
+        ]
+      },
+      {
+        "category": "timeline",
+        "label": "Illness course",
+        "value": "Symptoms progressed over one day, and her roommate reports she became confused this morning.",
+        "initially_visible": true,
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["confusion", "onset", "roommate"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "history",
+            "quote": "One day progression; confused this morning per roommate."
+          }
+        ]
+      },
+      {
+        "category": "symptom",
+        "label": "Associated symptoms",
+        "value": "She has nausea and light sensitivity but no focal weakness or seizure activity.",
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["nausea", "photophobia", "weakness", "seizure"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "review of systems",
+            "quote": "Nausea and photophobia; no focal weakness or seizures."
+          }
+        ]
+      },
+      {
+        "category": "past_medical_history",
+        "label": "Immunization history",
+        "value": "Vaccination history is incomplete after moving for college.",
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["vaccination", "college"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "past history",
+            "quote": "Incomplete vaccination history after moving for college."
+          }
+        ]
+      },
+      {
+        "category": "vital",
+        "label": "Triage vitals",
+        "value": "Temperature is 39.3 C, heart rate 122/min, blood pressure 102/64 mmHg, respiratory rate 22/min, oxygen saturation 98% on room air.",
+        "reveal_actions": ["request_exam_detail"],
+        "tags": ["fever", "tachycardia", "vitals"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "vitals",
+            "quote": "T 39.3 C, HR 122, BP 102/64, RR 22, SpO2 98% RA."
+          }
+        ]
+      },
+      {
+        "category": "physical_exam",
+        "label": "Neurologic exam",
+        "value": "She is drowsy but arousable, has neck stiffness, and moves all extremities symmetrically.",
+        "reveal_actions": ["request_exam_detail"],
+        "tags": ["neck stiffness", "mental status", "neurologic"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "exam",
+            "quote": "Drowsy but arousable; neck stiffness; symmetric movement."
+          }
+        ]
+      },
+      {
+        "category": "lab",
+        "label": "CBC",
+        "value": "White blood cell count is 18.9 x 10^9/L with neutrophil predominance.",
+        "reveal_actions": ["order_lab"],
+        "tags": ["cbc", "white blood cell", "neutrophil"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "labs",
+            "quote": "WBC 18.9 x 10^9/L with neutrophil predominance."
+          }
+        ]
+      },
+      {
+        "category": "lab",
+        "label": "CSF profile",
+        "value": "Cerebrospinal fluid has 1,420 white cells/uL with neutrophil predominance, glucose 28 mg/dL, and protein 186 mg/dL.",
+        "reveal_actions": ["order_lab"],
+        "tags": ["csf", "lumbar puncture", "glucose", "protein", "neutrophil"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "cerebrospinal fluid",
+            "quote": "CSF WBC 1420/uL neutrophil predominant, glucose 28, protein 186."
+          }
+        ]
+      },
+      {
+        "category": "microbiology",
+        "label": "Gram stain",
+        "value": "CSF Gram stain shows gram-negative diplococci.",
+        "reveal_actions": ["order_lab"],
+        "tags": ["gram stain", "csf", "diplococci"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "microbiology",
+            "quote": "Gram-negative diplococci seen on CSF Gram stain."
+          }
+        ]
+      },
+      {
+        "category": "imaging",
+        "label": "Head CT",
+        "value": "Noncontrast head CT shows no mass effect, hemorrhage, or hydrocephalus.",
+        "reveal_actions": ["order_imaging"],
+        "tags": ["ct", "head", "mass effect"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "imaging",
+            "quote": "No mass effect, hemorrhage, or hydrocephalus."
+          }
+        ]
+      },
+      {
+        "category": "differential_tag",
+        "label": "Dangerous differential",
+        "value": "A rapidly progressive central nervous system infection must be treated as time-sensitive.",
+        "reveal_actions": ["submit_differential"],
+        "tags": ["central nervous system infection", "sepsis"],
+        "provenance": [
+          {
+            "kind": "approved_synthetic_safe_connective_detail",
+            "locator": "derived teaching",
+            "quote": "Fever, headache, neck stiffness, altered mental status, and inflammatory CSF require urgent treatment."
+          }
+        ]
+      },
+      {
+        "category": "hint",
+        "label": "Hint 1",
+        "value": "Prioritize the combination of fever, mental status change, neck stiffness, and the spinal fluid pattern.",
+        "reveal_actions": ["request_hint"],
+        "tags": ["hint", "csf", "neck stiffness"],
+        "provenance": [
+          {
+            "kind": "approved_synthetic_safe_connective_detail",
+            "locator": "derived hint",
+            "quote": "Fever, altered mental status, neck stiffness, and CSF profile are key."
+          }
+        ]
+      },
+      {
+        "category": "diagnosis",
+        "label": "Final diagnosis",
+        "value": "Bacterial meningitis supported by fever, altered mental status, neck stiffness, inflammatory CSF profile, and Gram stain.",
+        "spoiler": true,
+        "reveal_actions": [],
+        "tags": ["diagnosis"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "diagnosis",
+            "quote": "Final diagnosis: bacterial meningitis."
+          }
+        ]
+      }
+    ]
+  }
+}

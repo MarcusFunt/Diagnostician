@@ -5,6 +5,10 @@ from dataclasses import dataclass, field
 from typing import Protocol
 from uuid import UUID, uuid4
 
+from diagnostician.core.windows_platform import disable_slow_wmi_platform_probe
+
+disable_slow_wmi_platform_probe()
+
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
@@ -33,7 +37,7 @@ from diagnostician.db.models import (
 
 
 def dump_model(model):
-    return model.model_dump(mode="json")
+    return model.model_dump(mode="json", exclude_computed_fields=True)
 
 
 class GameStore(Protocol):
@@ -178,7 +182,6 @@ class SqlAlchemyGameStore:
         existing = self.session.get(CaseRow, truth_case.id)
         if existing is not None:
             self.session.execute(delete(CaseFactRow).where(CaseFactRow.case_id == truth_case.id))
-            self.session.delete(existing)
             self.session.flush()
 
         row = CaseRow(
@@ -190,7 +193,7 @@ class SqlAlchemyGameStore:
             final_diagnosis=truth_case.final_diagnosis,
             truth_payload=dump_model(truth_case),
         )
-        self.session.add(row)
+        self.session.merge(row)
         self.session.flush()
 
         embeddings = embeddings or {}

@@ -178,6 +178,18 @@ class TruthCase(BaseModel):
         return self.review_status == ReviewStatus.APPROVED
 
 
+class CaseSummary(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: UUID
+    title: str
+    chief_complaint: str
+    difficulty: str
+    specialty: str | None = None
+    tags: list[str] = Field(default_factory=list)
+    created_at: datetime
+
+
 class VisibleEvidence(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -210,6 +222,9 @@ class RunState(BaseModel):
     hint_count: int = 0
     turn_count: int = 0
     score: int | None = None
+    case_story: str = ""
+    run_summary: str = ""
+    story_fact_ids: list[UUID] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=utcnow)
     updated_at: datetime = Field(default_factory=utcnow)
 
@@ -299,6 +314,8 @@ class RunCreateRequest(BaseModel):
     case_id: UUID | None = None
     specialty: str | None = None
     difficulty: str | None = None
+    exclude_case_ids: list[UUID] = Field(default_factory=list)
+    randomize: bool = True
 
 
 class IngestionReport(BaseModel):

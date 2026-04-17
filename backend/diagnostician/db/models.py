@@ -3,6 +3,10 @@ from __future__ import annotations
 from datetime import datetime
 from uuid import UUID, uuid4
 
+from diagnostician.core.windows_platform import disable_slow_wmi_platform_probe
+
+disable_slow_wmi_platform_probe()
+
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB

@@ -1,7 +1,10 @@
 import type {
+  CaseSummary,
   CaseReview,
   DiagnosisSubmission,
   PlayerTurnRequest,
+  RunCreateRequest,
+  RunSnapshot,
   TurnResponse,
   UUID,
 } from "./types";
@@ -11,11 +14,19 @@ const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:800
   "",
 );
 
-export async function createRun(): Promise<TurnResponse> {
+export async function listCases(): Promise<CaseSummary[]> {
+  return request<CaseSummary[]>("/cases");
+}
+
+export async function createRun(payload: RunCreateRequest = {}): Promise<TurnResponse> {
   return request<TurnResponse>("/runs", {
     method: "POST",
-    body: JSON.stringify({}),
+    body: JSON.stringify(payload),
   });
+}
+
+export async function getRun(runId: UUID): Promise<RunSnapshot> {
+  return request<RunSnapshot>(`/runs/${runId}`);
 }
 
 export async function submitTurn(runId: UUID, payload: PlayerTurnRequest): Promise<TurnResponse> {
