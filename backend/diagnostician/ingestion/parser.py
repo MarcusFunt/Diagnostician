@@ -81,12 +81,26 @@ DEFAULT_ACTION_CATEGORY_MAP: dict[ActionType, list[FactCategory]] = {
         FactCategory.LAB,
         FactCategory.MICROBIOLOGY,
     ],
+    ActionType.ORDER_ECG: [
+        FactCategory.ECG,
+    ],
     ActionType.ORDER_IMAGING: [
         FactCategory.IMAGING,
     ],
     ActionType.REQUEST_PATHOLOGY_DETAIL: [
         FactCategory.PATHOLOGY,
         FactCategory.PROCEDURE,
+    ],
+    ActionType.GIVE_TREATMENT: [
+        FactCategory.TREATMENT,
+        FactCategory.MEDICATION,
+    ],
+    ActionType.REQUEST_CONSULT: [
+        FactCategory.CONSULT,
+    ],
+    ActionType.OBSERVE_PATIENT: [
+        FactCategory.OBSERVATION,
+        FactCategory.VITAL,
     ],
     ActionType.SUBMIT_DIFFERENTIAL: [
         FactCategory.DIFFERENTIAL_TAG,
@@ -365,6 +379,7 @@ def _truth_case_from_json(data: dict[str, Any], source: SourceDocument) -> Truth
         provenance=provenance,
         reveal_policy=reveal_policy,
         teaching_points=case_data.get("teaching_points", []),
+        curation_notes=case_data.get("curation_notes", ["Locally reviewed playable case."]),
     )
 
 
@@ -479,6 +494,9 @@ def _truth_case_from_multicare_record(
         provenance=provenance,
         reveal_policy=reveal_policy,
         teaching_points=extracted.teaching_points,
+        curation_notes=[
+            "Automatically structured from MultiCaRe; human review is recommended before using as curated educational content."
+        ],
     )
 
 
@@ -610,7 +628,7 @@ def _extract_multicare_case_with_llm(
             "chief_complaint": "opening presentation without the final diagnosis",
             "facts": [
                 {
-                    "category": "symptom|physical_exam|lab|imaging|pathology|procedure|microbiology|past_medical_history|medication|social_history|timeline",
+                    "category": "symptom|physical_exam|lab|ecg|imaging|pathology|procedure|microbiology|past_medical_history|medication|treatment|social_history|timeline|observation",
                     "label": "short label",
                     "value": "fact text without final diagnosis wording",
                     "quote": "source sentence supporting the fact",
@@ -814,13 +832,15 @@ def _extract_fact_items(
 
 def _classify_sentence(sentence: str) -> FactCategory | None:
     text = sentence.casefold()
+    if any(token in text for token in ("ecg", "ekg", "electrocardiogram")):
+        return FactCategory.ECG
     if any(token in text for token in ("x-ray", "xray", "radiograph", "ct ", " mri", "ultrasound", "angiograph", "pet scan", "echocardiograph", "scan revealed", "imaging")):
         return FactCategory.IMAGING
     if any(token in text for token in ("histolog", "patholog", "biopsy", "immunohist", "stain", "gross examination", "microscopic", "cd31", "cd34")):
         return FactCategory.PATHOLOGY
     if any(token in text for token in ("culture", "pcr", "microbiolog", "gram stain", "viral", "bacterial", "fungal")):
         return FactCategory.MICROBIOLOGY
-    if any(token in text for token in ("cbc", "ecg", "ekg", "electrocardiogram", "hemoglobin", "platelet", "creatinine", "sodium", "potassium", "esr", "crp", "hba1c", "panel", "laboratory", "blood test", "serum", "urine")):
+    if any(token in text for token in ("cbc", "hemoglobin", "platelet", "creatinine", "sodium", "potassium", "esr", "crp", "hba1c", "panel", "laboratory", "blood test", "serum", "urine")):
         return FactCategory.LAB
     if any(token in text for token in ("physical examination", "examination", "exam ", "pupils", "visual acuity", "blood pressure", "heart rate", "respiratory rate", "temperature", "oxygen saturation", "intraocular pressure")):
         if any(token in text for token in ("blood pressure", "heart rate", "respiratory rate", "temperature", "oxygen saturation")):
@@ -828,8 +848,14 @@ def _classify_sentence(sentence: str) -> FactCategory | None:
         return FactCategory.PHYSICAL_EXAM
     if any(token in text for token in ("underwent", "resection", "surgery", "operation", "procedure", "laparotomy", "endoscopy", "catheter", "bypass", "photocoagulation")):
         return FactCategory.PROCEDURE
-    if any(token in text for token in ("treated with", "started on", "received", "taking", "therapy", "medication", "administered")):
+    if any(token in text for token in ("treated with", "started on", "received", "therapy", "administered", "fluid", "antibiotic", "insulin", "transfusion")):
+        return FactCategory.TREATMENT
+    if any(token in text for token in ("taking", "medication")):
         return FactCategory.MEDICATION
+    if any(token in text for token in ("consult", "consultation", "referred to", "admitted under")):
+        return FactCategory.CONSULT
+    if any(token in text for token in ("observed", "observation", "repeat vitals", "serial", "reassessed")):
+        return FactCategory.OBSERVATION
     if any(token in text for token in ("smoker", "smoking", "alcohol", "pack-year", "occupation", "family history")):
         return FactCategory.SOCIAL_HISTORY
     if any(token in text for token in ("history of", "prior", "previous", "past medical", "comorbid", "coronary artery disease", "diabetes", "hypertension")):
@@ -858,10 +884,14 @@ def _label_for_category(category: FactCategory, index: int) -> str:
         FactCategory.VITAL: "Vitals",
         FactCategory.PHYSICAL_EXAM: "Physical examination",
         FactCategory.LAB: "Laboratory findings",
+        FactCategory.ECG: "ECG",
         FactCategory.IMAGING: "Imaging findings",
         FactCategory.PATHOLOGY: "Pathology findings",
         FactCategory.PROCEDURE: "Procedure detail",
         FactCategory.MICROBIOLOGY: "Microbiology findings",
+        FactCategory.TREATMENT: "Treatment response",
+        FactCategory.CONSULT: "Consult note",
+        FactCategory.OBSERVATION: "Observation update",
     }
     base = labels.get(category, category.value.replace("_", " ").title())
     return base if index == 0 else f"{base} {index + 1}"

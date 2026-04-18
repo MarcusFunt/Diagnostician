@@ -21,7 +21,7 @@ def test_json_ingestion_produces_playable_case_with_embeddings():
 
 
 def test_all_demo_cases_are_playable_and_spoiler_locked():
-    assert len(DEMO_CASES) == 8
+    assert len(DEMO_CASES) == 10
     ingestor = LocalCaseIngestor(llm_client=FakeLLMClient())
 
     for case_path in DEMO_CASES:
@@ -32,6 +32,8 @@ def test_all_demo_cases_are_playable_and_spoiler_locked():
         assert result.truth_case is not None
         assert result.truth_case.reveal_policy is not None
         assert result.truth_case.reveal_policy.initial_fact_ids
+        assert result.truth_case.curation_notes
+        assert len([fact for fact in result.truth_case.facts if not fact.spoiler]) >= 11
 
         diagnosis_facts = [fact for fact in result.truth_case.facts if fact.category == FactCategory.DIAGNOSIS]
         assert diagnosis_facts, case_path.name
@@ -47,6 +49,19 @@ def test_all_demo_cases_are_playable_and_spoiler_locked():
             normalized = alias.casefold()
             if len(normalized) >= 4:
                 assert normalized not in visible_text, f"{case_path.name} leaked {alias}"
+
+
+def test_demo_library_contains_richer_mvp_action_coverage():
+    ingestor = LocalCaseIngestor(llm_client=FakeLLMClient())
+    categories_by_case = {
+        case_path.name: {fact.category for fact in ingestor.ingest_path(case_path).truth_case.facts}
+        for case_path in DEMO_CASES
+    }
+
+    assert any(FactCategory.ECG in categories for categories in categories_by_case.values())
+    assert any(FactCategory.TREATMENT in categories for categories in categories_by_case.values())
+    assert any(FactCategory.CONSULT in categories for categories in categories_by_case.values())
+    assert any(FactCategory.OBSERVATION in categories for categories in categories_by_case.values())
 
 
 def test_markdown_ingestion_is_captured_but_not_playable(tmp_path):

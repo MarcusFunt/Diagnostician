@@ -18,6 +18,7 @@ from diagnostician.core.schemas import (
     CaseSummary,
     CaseReview,
     DisplayBlock,
+    ReasoningStep,
     ReviewStatus,
     RunCreateRequest,
     RunState,
@@ -78,6 +79,8 @@ class GameStore(Protocol):
     ) -> UUID: ...
 
     def list_turn_blocks(self, run_id: UUID) -> list[DisplayBlock]: ...
+
+    def list_turn_steps(self, run_id: UUID) -> list[ReasoningStep]: ...
 
     def log_validation(
         self, run_id: UUID, report: ValidationReport, turn_id: UUID | None = None
@@ -203,6 +206,12 @@ class InMemoryGameStore:
                 for block in payload["response"].get("display_blocks", [])
             )
         return blocks
+
+    def list_turn_steps(self, run_id: UUID) -> list[ReasoningStep]:
+        return [
+            _turn_step_from_payload(index, payload.get("request", {}), payload.get("response", {}))
+            for index, payload in enumerate(self.turn_payloads.get(run_id, []), start=1)
+        ]
 
     def log_validation(
         self, run_id: UUID, report: ValidationReport, turn_id: UUID | None = None
@@ -391,6 +400,12 @@ class SqlAlchemyGameStore:
             )
         return blocks
 
+    def list_turn_steps(self, run_id: UUID) -> list[ReasoningStep]:
+        return [
+            _turn_step_from_payload(index, row.request_payload, row.response_payload)
+            for index, row in enumerate(self.turn_payloads(run_id), start=1)
+        ]
+
     def log_validation(
         self, run_id: UUID, report: ValidationReport, turn_id: UUID | None = None
     ) -> None:
@@ -449,7 +464,31 @@ def _case_summary(case: TruthCase) -> CaseSummary:
         difficulty=case.difficulty,
         specialty=case.specialty,
         tags=safe_tags,
+        curation_notes=case.curation_notes,
         created_at=case.created_at,
+    )
+
+
+def _turn_step_from_payload(index: int, request_payload: dict, response_payload: dict) -> ReasoningStep:
+    request = request_payload.get("request") if request_payload.get("action_type") == "submit_diagnosis" else request_payload
+    request = request if isinstance(request, dict) else {}
+    blocks = response_payload.get("display_blocks", [])
+    revealed = response_payload.get("newly_revealed_facts", [])
+    return ReasoningStep(
+        turn_index=index,
+        action_type=str(request_payload.get("action_type") or request.get("action_type") or "unknown"),
+        target=request.get("target") if isinstance(request.get("target"), str) else None,
+        player_text=str(request.get("player_text") or request.get("diagnosis") or ""),
+        response_titles=[
+            str(block.get("title"))
+            for block in blocks
+            if isinstance(block, dict) and block.get("title")
+        ],
+        revealed_fact_labels=[
+            str(fact.get("label"))
+            for fact in revealed
+            if isinstance(fact, dict) and fact.get("label")
+        ],
     )
 
 

@@ -70,7 +70,7 @@ class DiagnosticWorkflow:
         run_state = self.store.get_run(run_id)
         truth_case = self.store.get_case(run_state.case_id)
         if run_state.status != RunStatus.ACTIVE:
-            return self._completed_run_response(truth_case, run_state)
+            return self._inactive_run_response(truth_case, run_state)
         if "turn" not in self.graphs:
             return self._handle_turn_without_graph(run_id, request, truth_case, run_state)
         state = self.graphs["turn"].invoke(
@@ -92,10 +92,11 @@ class DiagnosticWorkflow:
             if existing is not None:
                 return existing
 
+        pre_completion_visible = set(run_state.visible_fact_ids)
         completed_state = run_state.model_copy(deep=True)
         completed_state.status = RunStatus.COMPLETE
         completed_state.stage = "review"
-        score = score_run(truth_case, completed_state, submission.diagnosis)
+        score = score_run(truth_case, completed_state, submission.diagnosis, submission.rationale)
         completed_state.score = score.final_score
 
         spoiler_facts = [fact for fact in truth_case.facts if fact.spoiler]
@@ -133,12 +134,29 @@ class DiagnosticWorkflow:
         )
         self.store.log_validation(run_id, validation, turn_id)
 
+        key_findings = _key_findings(truth_case)
+        revealed_key_findings = [fact for fact in key_findings if fact.id in pre_completion_visible]
+        missed_key_findings = [
+            fact for fact in key_findings if not fact.spoiler and fact.id not in pre_completion_visible
+        ]
         review = CaseReview(
             run_id=run_id,
             case_id=truth_case.id,
             diagnosis=truth_case.final_diagnosis,
+            player_diagnosis=submission.diagnosis,
+            player_rationale=submission.rationale,
             player_score=score,
-            key_findings=_key_findings(truth_case),
+            key_findings=key_findings,
+            revealed_key_findings=revealed_key_findings,
+            missed_key_findings=missed_key_findings,
+            reasoning_path=self.store.list_turn_steps(run_id),
+            rationale_feedback=_rationale_feedback(
+                truth_case,
+                run_state,
+                submission,
+                revealed_key_findings,
+                missed_key_findings,
+            ),
             teaching_points=truth_case.teaching_points,
             provenance=truth_case.provenance,
             turn_timeline=self.store.list_turn_blocks(run_id),
@@ -150,6 +168,20 @@ class DiagnosticWorkflow:
         if review is None:
             raise KeyError(f"Review not found for run {run_id}")
         return review
+
+    def abandon_run(self, run_id: UUID) -> RunSnapshot:
+        run_state = self.store.get_run(run_id)
+        if run_state.status == RunStatus.ACTIVE:
+            run_state = run_state.model_copy(
+                update={"status": RunStatus.ABANDONED, "stage": "abandoned", "updated_at": utcnow()}
+            )
+            self.store.save_run(run_state)
+        truth_case = self.store.get_case(run_state.case_id)
+        return RunSnapshot(
+            run_state=run_state,
+            visible_evidence=VisibleEvidence(facts=_facts_by_ids(truth_case, run_state.visible_fact_ids)),
+            display_blocks=self.store.list_turn_blocks(run_id),
+        )
 
     def start_load_case(self, state: dict[str, Any]) -> dict[str, Any]:
         truth_case = self._select_case(state["request"])
@@ -468,6 +500,10 @@ class DiagnosticWorkflow:
         matched = [fact for fact in ranked if _match_score(fact, request) > 0]
         if not matched and request.action_type == ActionType.REQUEST_HINT:
             matched = ranked
+        if not matched and request.action_type == ActionType.REQUEST_HINT:
+            matched = _next_hint_facts(truth_case, run_state)
+        if request.action_type == ActionType.REQUEST_HINT:
+            return matched[:1]
         return matched[: policy.max_facts_per_turn]
 
     def _generate_turn_blocks(
@@ -479,11 +515,23 @@ class DiagnosticWorkflow:
         prior_blocks: list[DisplayBlock],
         feedback: list[str],
     ) -> list[DisplayBlock]:
+        if request.action_type == ActionType.SUBMIT_DIFFERENTIAL:
+            return [
+                DisplayBlock(
+                    type=DisplayBlockType.ATTENDING_COMMENT,
+                    title="Attending Feedback",
+                    body=_differential_feedback(truth_case, request, facts),
+                    fact_ids=[fact.id for fact in facts],
+                    provenance_ids=_provenance_ids(facts),
+                    severity=Severity.INFO,
+                )
+            ]
+
         if not facts:
             return [
                 DisplayBlock(
                     type=DisplayBlockType.SYSTEM_STATUS,
-                    title="No New Information",
+                    title=_empty_title_for_action(request.action_type),
                     body=_no_new_information_text(request),
                     severity=Severity.INFO,
                 )
@@ -575,11 +623,16 @@ class DiagnosticWorkflow:
             }
         return _normalize_medical_audit(data)
 
-    def _completed_run_response(self, truth_case: TruthCase, run_state: RunState) -> TurnResponse:
+    def _inactive_run_response(self, truth_case: TruthCase, run_state: RunState) -> TurnResponse:
+        is_complete = run_state.status == RunStatus.COMPLETE
         block = DisplayBlock(
             type=DisplayBlockType.SYSTEM_STATUS,
-            title="Run Complete",
-            body="This run is complete. Open the case review to inspect the source-grounded explanation.",
+            title="Run Complete" if is_complete else "Run Inactive",
+            body=(
+                "This run is complete. Open the case review to inspect the source-grounded explanation."
+                if is_complete
+                else "This run has been abandoned. Start or resume another case from the library."
+            ),
             severity=Severity.WARNING,
         )
         validation = validate_display_blocks(truth_case, run_state, [block], run_state.visible_fact_ids)
@@ -1030,6 +1083,20 @@ def _build_run_summary(
         parts.append(f"Latest player action: {request.action_type.value} - {_clip_text(request_text, 160)}.")
     if run_state.ordered_tests:
         parts.append("Ordered tests: " + "; ".join(_clip_text(item, 80) for item in run_state.ordered_tests[-6:]) + ".")
+    if run_state.interventions:
+        parts.append(
+            "Interventions: "
+            + "; ".join(_clip_text(item, 80) for item in run_state.interventions[-6:])
+            + "."
+        )
+    if run_state.consults:
+        parts.append("Consults: " + "; ".join(_clip_text(item, 80) for item in run_state.consults[-6:]) + ".")
+    if run_state.observations:
+        parts.append(
+            "Observation requests: "
+            + "; ".join(_clip_text(item, 80) for item in run_state.observations[-6:])
+            + "."
+        )
     if run_state.submitted_differentials:
         parts.append(
             "Submitted differentials: "
@@ -1109,9 +1176,20 @@ def _facts_to_plain_text(facts: list[CaseFact]) -> str:
 
 
 def _apply_action_state_updates(run_state: RunState, request: PlayerTurnRequest) -> None:
-    if request.action_type in {ActionType.ORDER_LAB, ActionType.ORDER_IMAGING, ActionType.REQUEST_PATHOLOGY_DETAIL}:
+    if request.action_type in {
+        ActionType.ORDER_LAB,
+        ActionType.ORDER_ECG,
+        ActionType.ORDER_IMAGING,
+        ActionType.REQUEST_PATHOLOGY_DETAIL,
+    }:
         ordered = request.target or request.player_text or request.action_type.value
         run_state.ordered_tests.append(ordered)
+    if request.action_type == ActionType.GIVE_TREATMENT:
+        run_state.interventions.append(request.target or request.player_text or "Treatment")
+    if request.action_type == ActionType.REQUEST_CONSULT:
+        run_state.consults.append(request.target or request.player_text or "Consult")
+    if request.action_type == ActionType.OBSERVE_PATIENT:
+        run_state.observations.append(request.target or request.player_text or "Observation")
     if request.action_type == ActionType.REQUEST_HINT:
         run_state.hint_count += 1
     if request.action_type == ActionType.SUBMIT_DIFFERENTIAL and request.player_text:
@@ -1130,6 +1208,10 @@ def _stage_for_action(action_type: ActionType) -> str:
         return "differential"
     if action_type == ActionType.REQUEST_HINT:
         return "hint"
+    if action_type in {ActionType.GIVE_TREATMENT, ActionType.REQUEST_CONSULT}:
+        return "management"
+    if action_type == ActionType.OBSERVE_PATIENT:
+        return "observation"
     return "investigation"
 
 
@@ -1201,14 +1283,76 @@ def _facts_to_response_text(request: PlayerTurnRequest, facts: list[CaseFact]) -
     return _facts_to_plain_text(facts)
 
 
+def _next_hint_facts(truth_case: TruthCase, run_state: RunState) -> list[CaseFact]:
+    visible = set(run_state.visible_fact_ids)
+    priority = [
+        FactCategory.SYMPTOM,
+        FactCategory.VITAL,
+        FactCategory.PHYSICAL_EXAM,
+        FactCategory.LAB,
+        FactCategory.ECG,
+        FactCategory.IMAGING,
+        FactCategory.MICROBIOLOGY,
+        FactCategory.PATHOLOGY,
+        FactCategory.PROCEDURE,
+        FactCategory.TREATMENT,
+        FactCategory.OBSERVATION,
+    ]
+    priority_index = {category: index for index, category in enumerate(priority)}
+    candidates = [
+        fact
+        for fact in truth_case.facts
+        if fact.id not in visible
+        and not fact.spoiler
+        and fact.category in priority_index
+    ]
+    return sorted(candidates, key=lambda fact: (priority_index[fact.category], fact.label))[:1]
+
+
+def _differential_feedback(
+    truth_case: TruthCase,
+    request: PlayerTurnRequest,
+    facts: list[CaseFact],
+) -> str:
+    submitted = request.player_text.strip()
+    if not submitted:
+        return "List concrete diagnostic possibilities so the attending can judge your working pattern."
+
+    aligned = _differential_matches_hidden_answer(truth_case, submitted)
+    if aligned:
+        opening = "Your list includes a diagnosis compatible with the hidden source answer."
+    else:
+        opening = "Your list is recorded, but it does not clearly match the hidden source answer yet."
+
+    if facts:
+        return f"{opening} {_facts_to_plain_text(facts)}"
+    return f"{opening} Keep tying each possibility to revealed history, exam, and objective tests before submitting the final answer."
+
+
+def _differential_matches_hidden_answer(truth_case: TruthCase, text: str) -> bool:
+    normalized = _normalize_tag(text)
+    return any(
+        alias and alias in normalized
+        for alias in (_normalize_tag(item) for item in truth_case.diagnosis_aliases)
+    )
+
+
 def _block_type_for_action(action_type: ActionType, facts: list[CaseFact]) -> DisplayBlockType:
     categories = {fact.category for fact in facts}
+    if FactCategory.ECG in categories:
+        return DisplayBlockType.ECG_REPORT
     if FactCategory.LAB in categories or FactCategory.MICROBIOLOGY in categories:
         return DisplayBlockType.LAB_RESULT
     if FactCategory.IMAGING in categories:
         return DisplayBlockType.IMAGING_REPORT
     if FactCategory.PATHOLOGY in categories:
         return DisplayBlockType.PATHOLOGY_REPORT
+    if FactCategory.TREATMENT in categories or action_type == ActionType.GIVE_TREATMENT:
+        return DisplayBlockType.TREATMENT_UPDATE
+    if FactCategory.CONSULT in categories or action_type == ActionType.REQUEST_CONSULT:
+        return DisplayBlockType.CONSULT_NOTE
+    if FactCategory.OBSERVATION in categories or action_type == ActionType.OBSERVE_PATIENT:
+        return DisplayBlockType.OBSERVATION_UPDATE
     if action_type == ActionType.ASK_PATIENT_QUESTION:
         return DisplayBlockType.PATIENT_DIALOGUE
     if action_type == ActionType.REQUEST_HINT:
@@ -1221,29 +1365,106 @@ def _title_for_action(action_type: ActionType) -> str:
         ActionType.ASK_PATIENT_QUESTION: "Patient Response",
         ActionType.REQUEST_EXAM_DETAIL: "Exam Findings",
         ActionType.ORDER_LAB: "Lab Results",
+        ActionType.ORDER_ECG: "ECG",
         ActionType.ORDER_IMAGING: "Imaging Report",
         ActionType.REQUEST_PATHOLOGY_DETAIL: "Pathology Detail",
+        ActionType.GIVE_TREATMENT: "Treatment Response",
+        ActionType.REQUEST_CONSULT: "Consult Note",
+        ActionType.OBSERVE_PATIENT: "Observation",
         ActionType.SUBMIT_DIFFERENTIAL: "Attending Feedback",
         ActionType.REQUEST_HINT: "Hint",
     }[action_type]
 
 
+def _empty_title_for_action(action_type: ActionType) -> str:
+    if action_type == ActionType.GIVE_TREATMENT:
+        return "Treatment Not Documented"
+    if action_type == ActionType.REQUEST_CONSULT:
+        return "Consult Not Documented"
+    if action_type == ActionType.OBSERVE_PATIENT:
+        return "Observation Not Documented"
+    if action_type == ActionType.ORDER_ECG:
+        return "ECG Not Available"
+    return "No New Information"
+
+
 def _no_new_information_text(request: PlayerTurnRequest) -> str:
     if request.action_type == ActionType.SUBMIT_DIFFERENTIAL:
         return "Your differential has been recorded. No new case facts were revealed."
-    return "No additional source-grounded information is available for that request yet."
+    if request.action_type == ActionType.ORDER_ECG:
+        return "The source case does not include an ECG result for that exact request. Try another investigation or ask for a broader cardiopulmonary assessment."
+    if request.action_type == ActionType.GIVE_TREATMENT:
+        return "That intervention is recorded, but the source case does not document a response to it. Continue with source-grounded history, exam, or investigations."
+    if request.action_type == ActionType.REQUEST_CONSULT:
+        return "No source-grounded consult note is available for that request. Use the revealed findings to decide what to ask or order next."
+    if request.action_type == ActionType.OBSERVE_PATIENT:
+        return "The source case does not document a separate observation interval for that request. If repeat vitals or trajectory are available, ask for them directly."
+    if request.action_type == ActionType.REQUEST_HINT:
+        return "No further source-grounded hints are available. Re-check the visible evidence and decide which missing category would most change your differential."
+    return "The source case has no additional documented fact for that exact request. Try a more specific target or a different clinical action."
 
 
 def _key_findings(truth_case: TruthCase) -> list[CaseFact]:
     priority = {
+        FactCategory.ECG,
         FactCategory.IMAGING,
         FactCategory.LAB,
+        FactCategory.MICROBIOLOGY,
+        FactCategory.PATHOLOGY,
+        FactCategory.PROCEDURE,
         FactCategory.PHYSICAL_EXAM,
+        FactCategory.VITAL,
         FactCategory.SYMPTOM,
+        FactCategory.TREATMENT,
         FactCategory.DIAGNOSIS,
     }
     findings = [fact for fact in truth_case.facts if fact.category in priority]
-    return findings[:8]
+    return findings[:10]
+
+
+def _rationale_feedback(
+    truth_case: TruthCase,
+    run_state: RunState,
+    submission: DiagnosisSubmission,
+    revealed_key_findings: list[CaseFact],
+    missed_key_findings: list[CaseFact],
+) -> list[str]:
+    feedback: list[str] = []
+    correct = _differential_matches_hidden_answer(truth_case, submission.diagnosis)
+    if correct:
+        feedback.append("The submitted diagnosis matches an accepted source diagnosis alias.")
+    else:
+        feedback.append("The submitted diagnosis does not match the source-grounded final diagnosis.")
+
+    if submission.rationale.strip():
+        matched = [
+            fact.label
+            for fact in revealed_key_findings
+            if _review_fact_mentioned(fact, submission.rationale)
+        ]
+        if matched:
+            feedback.append("The rationale cited revealed support: " + ", ".join(matched[:4]) + ".")
+        else:
+            feedback.append("The rationale did not clearly cite the strongest revealed key findings.")
+    else:
+        feedback.append("No rationale was submitted.")
+
+    if missed_key_findings:
+        feedback.append(
+            "Important source findings were still unrevealed: "
+            + ", ".join(fact.label for fact in missed_key_findings[:5])
+            + "."
+        )
+    if run_state.hint_count:
+        feedback.append(f"{run_state.hint_count} hint request(s) reduced the efficiency score.")
+    return feedback
+
+
+def _review_fact_mentioned(fact: CaseFact, text: str) -> bool:
+    normalized_text = _normalize_tag(text)
+    candidates = [fact.label, *fact.tags]
+    candidates.extend(token for token in _normalize_tag(fact.value).split() if len(token) >= 5)
+    return any(_normalize_tag(candidate) in normalized_text for candidate in candidates if candidate.strip())
 
 
 def _normalize_tag(value: str) -> str:

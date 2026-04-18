@@ -2,6 +2,7 @@ import type {
   CaseListResponse,
   CaseReview,
   DiagnosisSubmission,
+  HealthStatus,
   PlayerTurnRequest,
   RunCreateRequest,
   RunSnapshot,
@@ -43,6 +44,10 @@ export async function listCases(params: CaseListParams = {}): Promise<CaseListRe
   return request<CaseListResponse>(`/cases${suffix}`);
 }
 
+export async function getHealth(): Promise<HealthStatus> {
+  return request<HealthStatus>("/health");
+}
+
 export async function createRun(payload: RunCreateRequest = {}): Promise<TurnResponse> {
   return request<TurnResponse>("/runs", {
     method: "POST",
@@ -52,6 +57,13 @@ export async function createRun(payload: RunCreateRequest = {}): Promise<TurnRes
 
 export async function getRun(runId: UUID): Promise<RunSnapshot> {
   return request<RunSnapshot>(`/runs/${runId}`);
+}
+
+export async function abandonRun(runId: UUID): Promise<RunSnapshot> {
+  return request<RunSnapshot>(`/runs/${runId}/abandon`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
 }
 
 export async function submitTurn(runId: UUID, payload: PlayerTurnRequest): Promise<TurnResponse> {
@@ -69,6 +81,10 @@ export async function submitDiagnosis(
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+export async function getReview(runId: UUID): Promise<CaseReview> {
+  return request<CaseReview>(`/runs/${runId}/review`);
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {

@@ -21,10 +21,11 @@ def test_api_lists_safe_case_summaries():
 
         assert response.status_code == 200
         payload = response.json()
-        assert payload["total_estimate"] == 8
-        assert len(payload["items"]) == 8
+        assert payload["total_estimate"] == 10
+        assert len(payload["items"]) == 10
         assert payload["next_cursor"] is None
         assert "final_diagnosis" not in payload["items"][0]
+        assert payload["items"][0]["curation_notes"]
         assert all("pulmonary embolism" not in tag.casefold() for item in payload["items"] for tag in item["tags"])
     finally:
         app.dependency_overrides.clear()
@@ -83,7 +84,7 @@ def test_api_case_listing_supports_pagination_and_search():
         assert first.status_code == 200
         payload = first.json()
         assert len(payload["items"]) == 3
-        assert payload["total_estimate"] == 8
+        assert payload["total_estimate"] == 10
         assert payload["next_cursor"] == "3"
 
         second = client.get(f"/cases?limit=3&cursor={payload['next_cursor']}")
@@ -144,5 +145,30 @@ def test_api_completed_run_turn_returns_complete_status():
         assert turn.status_code == 200
         assert turn.json()["run_state"]["status"] == "complete"
         assert turn.json()["display_blocks"][0]["title"] == "Run Complete"
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_api_abandon_run_marks_run_inactive():
+    store = populated_store()
+
+    def override_workflow():
+        return DiagnosticWorkflow(store=store, llm_client=FakeLLMClient())
+
+    app.dependency_overrides[get_workflow] = override_workflow
+    try:
+        client = TestClient(app)
+
+        created = client.post("/runs", json={})
+        run_id = created.json()["run_state"]["id"]
+        abandoned = client.post(f"/runs/{run_id}/abandon")
+        turn = client.post(
+            f"/runs/{run_id}/turns",
+            json={"action_type": "order_lab", "target": "D-dimer", "player_text": "Order d-dimer"},
+        )
+
+        assert abandoned.status_code == 200
+        assert abandoned.json()["run_state"]["status"] == "abandoned"
+        assert turn.json()["display_blocks"][0]["title"] == "Run Inactive"
     finally:
         app.dependency_overrides.clear()

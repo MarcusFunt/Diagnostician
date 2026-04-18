@@ -30,10 +30,14 @@ class FactCategory(StrEnum):
     VITAL = "vital"
     PHYSICAL_EXAM = "physical_exam"
     LAB = "lab"
+    ECG = "ecg"
     IMAGING = "imaging"
     PATHOLOGY = "pathology"
     PROCEDURE = "procedure"
     MICROBIOLOGY = "microbiology"
+    TREATMENT = "treatment"
+    CONSULT = "consult"
+    OBSERVATION = "observation"
     DIAGNOSIS = "diagnosis"
     DIFFERENTIAL_TAG = "differential_tag"
     TEACHING_POINT = "teaching_point"
@@ -52,8 +56,12 @@ class DisplayBlockType(StrEnum):
     PATIENT_DIALOGUE = "patient_dialogue"
     ATTENDING_COMMENT = "attending_comment"
     LAB_RESULT = "lab_result"
+    ECG_REPORT = "ecg_report"
     IMAGING_REPORT = "imaging_report"
     PATHOLOGY_REPORT = "pathology_report"
+    TREATMENT_UPDATE = "treatment_update"
+    CONSULT_NOTE = "consult_note"
+    OBSERVATION_UPDATE = "observation_update"
     WARNING = "warning"
     HINT = "hint"
     SYSTEM_STATUS = "system_status"
@@ -70,8 +78,12 @@ class ActionType(StrEnum):
     ASK_PATIENT_QUESTION = "ask_patient_question"
     REQUEST_EXAM_DETAIL = "request_exam_detail"
     ORDER_LAB = "order_lab"
+    ORDER_ECG = "order_ecg"
     ORDER_IMAGING = "order_imaging"
     REQUEST_PATHOLOGY_DETAIL = "request_pathology_detail"
+    GIVE_TREATMENT = "give_treatment"
+    REQUEST_CONSULT = "request_consult"
+    OBSERVE_PATIENT = "observe_patient"
     SUBMIT_DIFFERENTIAL = "submit_differential"
     REQUEST_HINT = "request_hint"
 
@@ -161,6 +173,7 @@ class TruthCase(BaseModel):
     provenance: list[Provenance] = Field(default_factory=list)
     reveal_policy: RevealPolicy | None = None
     teaching_points: list[str] = Field(default_factory=list)
+    curation_notes: list[str] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=utcnow)
 
     @field_validator("diagnosis_aliases")
@@ -187,6 +200,7 @@ class CaseSummary(BaseModel):
     difficulty: str
     specialty: str | None = None
     tags: list[str] = Field(default_factory=list)
+    curation_notes: list[str] = Field(default_factory=list)
     created_at: datetime
 
 
@@ -225,6 +239,9 @@ class RunState(BaseModel):
     stage: str = "opening"
     visible_fact_ids: list[UUID] = Field(default_factory=list)
     ordered_tests: list[str] = Field(default_factory=list)
+    interventions: list[str] = Field(default_factory=list)
+    consults: list[str] = Field(default_factory=list)
+    observations: list[str] = Field(default_factory=list)
     requested_clues: list[str] = Field(default_factory=list)
     submitted_differentials: list[str] = Field(default_factory=list)
     hint_count: int = 0
@@ -300,7 +317,20 @@ class ScoreSummary(BaseModel):
     testing_penalty: int = Field(ge=0)
     hint_penalty: int = Field(ge=0)
     dangerous_miss_penalty: int = Field(ge=0)
+    rationale_points: int = Field(default=0, ge=0)
+    missed_key_findings_penalty: int = Field(default=0, ge=0)
     rationale: list[str] = Field(default_factory=list)
+
+
+class ReasoningStep(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    turn_index: int = Field(ge=1)
+    action_type: str
+    target: str | None = None
+    player_text: str = ""
+    response_titles: list[str] = Field(default_factory=list)
+    revealed_fact_labels: list[str] = Field(default_factory=list)
 
 
 class CaseReview(BaseModel):
@@ -309,8 +339,14 @@ class CaseReview(BaseModel):
     run_id: UUID
     case_id: UUID
     diagnosis: str
+    player_diagnosis: str = ""
+    player_rationale: str = ""
     player_score: ScoreSummary
     key_findings: list[CaseFact]
+    revealed_key_findings: list[CaseFact] = Field(default_factory=list)
+    missed_key_findings: list[CaseFact] = Field(default_factory=list)
+    reasoning_path: list[ReasoningStep] = Field(default_factory=list)
+    rationale_feedback: list[str] = Field(default_factory=list)
     teaching_points: list[str]
     provenance: list[Provenance]
     turn_timeline: list[DisplayBlock]

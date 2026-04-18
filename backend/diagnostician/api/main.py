@@ -118,6 +118,17 @@ def get_run(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
+@app.post("/runs/{run_id}/abandon", response_model=RunSnapshot)
+def abandon_run(
+    run_id: UUID,
+    workflow: DiagnosticWorkflow = Depends(get_workflow),
+) -> RunSnapshot:
+    try:
+        return workflow.abandon_run(run_id)
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 @app.post("/runs/{run_id}/turns", response_model=TurnResponse)
 def submit_turn(
     run_id: UUID,

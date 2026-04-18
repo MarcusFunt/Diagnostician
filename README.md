@@ -7,10 +7,11 @@ Demo implementation of a React/Vite, source-grounded diagnostic reasoning game.
 - FastAPI backend with typed Pydantic contracts.
 - SQLAlchemy/Postgres persistence with Alembic migrations and pgvector support.
 - Local-source ingestion for de-identified JSON, Markdown, optional PDF files, and MultiCaRe Parquet case shards.
-- Eight approved demo cases with provenance, reveal policy, spoiler-locked diagnoses, and teaching points.
+- Ten approved demo cases with provenance, reveal policy, spoiler-locked diagnoses, and teaching points.
 - Backend-authoritative gameplay workflows for starting runs, turns, diagnosis submission, scoring, and case review.
 - Ollama adapters for generation and embeddings, with deterministic fallbacks for development when Ollama is unavailable.
 - React + Vite + TypeScript diagnostic workstation with case browsing, replay avoidance, evidence panels, differential tracking, and review.
+- MVP gameplay actions for history, exam, labs, ECG, imaging, procedures, treatments, consults, observation, progressive hints, and final diagnosis review.
 - Tests for ingestion, reveal policy, validation, scoring, and API behavior.
 
 ## Fast demo setup
@@ -88,6 +89,13 @@ The lower-level ingestion command is still available for arbitrary sources:
 
 ```powershell
 .\.venv\Scripts\python -m pytest
+```
+
+Run the opt-in Docker Compose smoke test when Docker is available:
+
+```powershell
+$env:DIAGNOSTICIAN_RUN_DOCKER_SMOKE="1"
+.\.venv\Scripts\python -m pytest tests/test_smoke.py
 ```
 
 ## React client

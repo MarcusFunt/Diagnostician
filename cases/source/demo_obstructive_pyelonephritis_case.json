@@ -1,0 +1,338 @@
+{
+  "source": {
+    "title": "Reviewed educational septic flank pain case",
+    "deidentified": true,
+    "citation": "Local reviewed educational case file for Diagnostician demo content.",
+    "raw_text": "De-identified educational case source assembled and reviewed for demo validation."
+  },
+  "case": {
+    "title": "Fever and flank pain with hypotension",
+    "review_status": "approved",
+    "demographics": {
+      "age": 72,
+      "sex": "female"
+    },
+    "chief_complaint": "Fever, rigors, confusion, and right flank pain.",
+    "final_diagnosis": "Obstructive pyelonephritis with sepsis",
+    "diagnosis_aliases": [
+      "urosepsis",
+      "septic obstructing stone"
+    ],
+    "difficulty": "advanced",
+    "specialty": "emergency medicine",
+    "tags": [
+      "sepsis",
+      "flank pain",
+      "urinary infection",
+      "hypotension"
+    ],
+    "max_facts_per_turn": 2,
+    "teaching_points": [
+      "Fever, flank pain, hypotension, and altered mentation should trigger early sepsis treatment.",
+      "Hydronephrosis with infected urine suggests a source-control problem, not only uncomplicated infection.",
+      "Definitive management requires antibiotics, resuscitation, and urgent decompression."
+    ],
+    "curation_notes": [
+      "Manually authored and reviewed demo case with treatment, observation, imaging, microbiology, and consult paths."
+    ],
+    "facts": [
+      {
+        "category": "chief_complaint",
+        "label": "Opening concern",
+        "value": "The patient is brought in for fever, shaking chills, confusion, and severe right flank pain.",
+        "initially_visible": true,
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["fever", "rigors", "confusion", "flank pain"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "source summary",
+            "quote": "Fever, rigors, confusion, and right flank pain."
+          }
+        ]
+      },
+      {
+        "category": "timeline",
+        "label": "Symptom progression",
+        "value": "Dysuria began three days ago, followed by flank pain yesterday and confusion this morning.",
+        "initially_visible": true,
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["dysuria", "timeline", "confusion"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "history",
+            "quote": "Dysuria for three days, flank pain yesterday, confusion this morning."
+          }
+        ]
+      },
+      {
+        "category": "symptom",
+        "label": "Associated symptoms",
+        "value": "She has nausea and poor oral intake but no cough, chest pain, or abdominal guarding.",
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["nausea", "poor intake", "cough", "chest pain"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "review of systems",
+            "quote": "Nausea and poor intake; no cough, chest pain, or abdominal guarding."
+          }
+        ]
+      },
+      {
+        "category": "past_medical_history",
+        "label": "Relevant history",
+        "value": "History includes type 2 diabetes, recurrent kidney stones, and chronic kidney disease stage 3.",
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["diabetes", "kidney stones", "chronic kidney disease"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "history",
+            "quote": "Type 2 diabetes, recurrent nephrolithiasis, CKD stage 3."
+          }
+        ]
+      },
+      {
+        "category": "medication",
+        "label": "Home medications",
+        "value": "She takes metformin, lisinopril, and acetaminophen as needed.",
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["metformin", "lisinopril"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "medications",
+            "quote": "Metformin, lisinopril, acetaminophen as needed."
+          }
+        ]
+      },
+      {
+        "category": "vital",
+        "label": "Triage vitals",
+        "value": "Temperature is 39.2 C, blood pressure 84/50 mmHg, heart rate 126/min, respiratory rate 24/min, oxygen saturation 96% on room air.",
+        "reveal_actions": ["request_exam_detail", "observe_patient"],
+        "tags": ["fever", "hypotension", "tachycardia", "vitals"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "vitals",
+            "quote": "T 39.2 C, BP 84/50, HR 126, RR 24, SpO2 96% RA."
+          }
+        ]
+      },
+      {
+        "category": "physical_exam",
+        "label": "Focused exam",
+        "value": "She is confused but arousable, has dry mucous membranes, and has marked right costovertebral angle tenderness.",
+        "reveal_actions": ["request_exam_detail"],
+        "tags": ["confusion", "dehydration", "cva tenderness"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "exam",
+            "quote": "Confused but arousable, dry mucous membranes, right CVA tenderness."
+          }
+        ]
+      },
+      {
+        "category": "lab",
+        "label": "CBC",
+        "value": "White blood cell count is 22.4 x10^9/L with neutrophil predominance.",
+        "reveal_actions": ["order_lab"],
+        "tags": ["wbc", "neutrophils", "infection"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "labs",
+            "quote": "WBC 22.4 x10^9/L with neutrophil predominance."
+          }
+        ]
+      },
+      {
+        "category": "lab",
+        "label": "Chemistry and lactate",
+        "value": "Creatinine is 2.1 mg/dL from a baseline of 1.2, bicarbonate 18 mmol/L, and lactate 4.3 mmol/L.",
+        "reveal_actions": ["order_lab"],
+        "tags": ["creatinine", "lactate", "bicarbonate", "aki"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "labs",
+            "quote": "Cr 2.1 from 1.2, bicarbonate 18, lactate 4.3."
+          }
+        ]
+      },
+      {
+        "category": "lab",
+        "label": "Urinalysis",
+        "value": "Urinalysis shows positive nitrites, large leukocyte esterase, many white cells, and bacteria.",
+        "reveal_actions": ["order_lab"],
+        "tags": ["urinalysis", "nitrites", "leukocyte esterase", "bacteria"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "urinalysis",
+            "quote": "Positive nitrites, large leukocyte esterase, many WBCs and bacteria."
+          }
+        ]
+      },
+      {
+        "category": "microbiology",
+        "label": "Cultures",
+        "value": "Blood and urine cultures later grow Escherichia coli susceptible to ceftriaxone.",
+        "reveal_actions": ["order_lab"],
+        "tags": ["culture", "escherichia coli", "ceftriaxone"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "microbiology",
+            "quote": "Blood and urine cultures grew E. coli susceptible to ceftriaxone."
+          }
+        ]
+      },
+      {
+        "category": "imaging",
+        "label": "Renal ultrasound",
+        "value": "Renal ultrasound shows moderate right hydronephrosis and a 9 mm echogenic focus near the ureteropelvic junction.",
+        "reveal_actions": ["order_imaging"],
+        "tags": ["renal ultrasound", "hydronephrosis", "stone"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "imaging",
+            "quote": "Moderate right hydronephrosis with 9 mm echogenic focus near the UPJ."
+          }
+        ]
+      },
+      {
+        "category": "imaging",
+        "label": "Noncontrast CT",
+        "value": "CT confirms a 9 mm proximal right ureteral stone with upstream hydronephrosis and perinephric stranding.",
+        "reveal_actions": ["order_imaging"],
+        "tags": ["ct", "ureteral stone", "hydronephrosis", "perinephric stranding"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "imaging",
+            "quote": "9 mm proximal right ureteral stone with hydronephrosis and perinephric stranding."
+          }
+        ]
+      },
+      {
+        "category": "treatment",
+        "label": "Initial resuscitation",
+        "value": "She receives 30 mL/kg crystalloid and broad-spectrum IV antibiotics within the first hour.",
+        "reveal_actions": ["give_treatment"],
+        "tags": ["fluids", "antibiotics", "sepsis"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "treatment",
+            "quote": "30 mL/kg crystalloid and broad-spectrum IV antibiotics given within one hour."
+          }
+        ]
+      },
+      {
+        "category": "observation",
+        "label": "Repeat vitals",
+        "value": "After fluids, blood pressure improves to 96/58 mmHg, heart rate remains 112/min, and mental status is slightly clearer.",
+        "reveal_actions": ["observe_patient"],
+        "tags": ["repeat vitals", "fluids", "mental status"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "reassessment",
+            "quote": "After fluids BP 96/58, HR 112, mental status slightly clearer."
+          }
+        ]
+      },
+      {
+        "category": "consult",
+        "label": "Urology consult",
+        "value": "Urology recommends urgent decompression because infection is present above an obstructing ureteral stone.",
+        "reveal_actions": ["request_consult"],
+        "tags": ["urology", "decompression", "obstruction"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "consult",
+            "quote": "Urology recommended urgent decompression for infected obstructing ureteral stone."
+          }
+        ]
+      },
+      {
+        "category": "procedure",
+        "label": "Source control",
+        "value": "A right ureteral stent is placed with drainage of cloudy urine from the renal pelvis.",
+        "reveal_actions": ["request_pathology_detail"],
+        "tags": ["ureteral stent", "drainage", "source control"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "procedure",
+            "quote": "Right ureteral stent placed; cloudy urine drained from renal pelvis."
+          }
+        ]
+      },
+      {
+        "category": "differential_tag",
+        "label": "Dangerous differential",
+        "value": "A urinary source with shock physiology should remain on the dangerous differential, especially when flank pain and stone history are present.",
+        "reveal_actions": ["submit_differential"],
+        "tags": ["urinary source", "shock", "stone history"],
+        "provenance": [
+          {
+            "kind": "approved_synthetic_safe_connective_detail",
+            "locator": "derived teaching",
+            "quote": "Fever, flank pain, hypotension, and stone history support dangerous urinary source consideration."
+          }
+        ]
+      },
+      {
+        "category": "hint",
+        "label": "Hint 1",
+        "value": "Do not stop at infection; ask whether there is a reason infected urine cannot drain.",
+        "reveal_actions": ["request_hint"],
+        "tags": ["hint", "drainage", "obstruction"],
+        "provenance": [
+          {
+            "kind": "approved_synthetic_safe_connective_detail",
+            "locator": "derived hint",
+            "quote": "Infection plus impaired drainage changes management."
+          }
+        ]
+      },
+      {
+        "category": "hint",
+        "label": "Hint 2",
+        "value": "The highest-yield next step after antibiotics and fluids is imaging that evaluates the collecting system.",
+        "reveal_actions": ["request_hint"],
+        "tags": ["hint", "imaging", "collecting system"],
+        "provenance": [
+          {
+            "kind": "approved_synthetic_safe_connective_detail",
+            "locator": "derived hint",
+            "quote": "Renal imaging is key when infection and obstruction are both possible."
+          }
+        ]
+      },
+      {
+        "category": "diagnosis",
+        "label": "Final diagnosis",
+        "value": "Obstructive pyelonephritis with sepsis from a proximal right ureteral stone.",
+        "spoiler": true,
+        "reveal_actions": [],
+        "tags": ["diagnosis"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "diagnosis",
+            "quote": "Final diagnosis: obstructive pyelonephritis with sepsis due to proximal right ureteral stone."
+          }
+        ]
+      }
+    ]
+  }
+}
