@@ -1,0 +1,338 @@
+{
+  "source": {
+    "title": "Reviewed educational chest pain case",
+    "deidentified": true,
+    "citation": "Local reviewed educational case file for Diagnostician demo content.",
+    "raw_text": "De-identified educational case source assembled and reviewed for demo validation."
+  },
+  "case": {
+    "title": "Pressure-like chest pain with diaphoresis",
+    "review_status": "approved",
+    "demographics": {
+      "age": 61,
+      "sex": "male"
+    },
+    "chief_complaint": "Acute pressure-like chest pain with nausea and sweating.",
+    "final_diagnosis": "Inferior ST-elevation myocardial infarction",
+    "diagnosis_aliases": [
+      "inferior STEMI",
+      "STEMI"
+    ],
+    "difficulty": "intermediate",
+    "specialty": "emergency medicine",
+    "tags": [
+      "chest pain",
+      "diaphoresis",
+      "cardiology",
+      "acute coronary syndrome"
+    ],
+    "max_facts_per_turn": 2,
+    "teaching_points": [
+      "Pressure-like chest pain with diaphoresis should prompt immediate ECG review.",
+      "Inferior ST elevation with reciprocal changes is a time-sensitive reperfusion pattern.",
+      "Management should connect antiplatelet therapy, anticoagulation, and catheterization activation to the source ECG."
+    ],
+    "curation_notes": [
+      "Manually authored and reviewed demo case with ECG, treatment, consult, and observation paths."
+    ],
+    "facts": [
+      {
+        "category": "chief_complaint",
+        "label": "Opening concern",
+        "value": "The patient reports heavy central chest pressure with nausea and sweating.",
+        "initially_visible": true,
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["chest pain", "nausea", "diaphoresis"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "source summary",
+            "quote": "Acute pressure-like chest pain with nausea and sweating."
+          }
+        ]
+      },
+      {
+        "category": "timeline",
+        "label": "Symptom onset",
+        "value": "The pain began suddenly 45 minutes before arrival while he was walking upstairs.",
+        "initially_visible": true,
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["onset", "exertion"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "history",
+            "quote": "Pain began 45 minutes before arrival while climbing stairs."
+          }
+        ]
+      },
+      {
+        "category": "symptom",
+        "label": "Associated symptoms",
+        "value": "He feels short of breath and lightheaded but denies pleuritic pain or tearing back pain.",
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["dyspnea", "lightheaded", "back pain"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "review of systems",
+            "quote": "Shortness of breath and lightheadedness; no pleuritic or tearing back pain."
+          }
+        ]
+      },
+      {
+        "category": "past_medical_history",
+        "label": "Cardiac risk history",
+        "value": "History includes hypertension, hyperlipidemia, and active tobacco use.",
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["hypertension", "hyperlipidemia", "smoking"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "history",
+            "quote": "Hypertension, hyperlipidemia, active smoker."
+          }
+        ]
+      },
+      {
+        "category": "medication",
+        "label": "Home medications",
+        "value": "He takes lisinopril and atorvastatin but missed several recent statin doses.",
+        "reveal_actions": ["ask_patient_question"],
+        "tags": ["lisinopril", "atorvastatin", "statin"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "medications",
+            "quote": "Home medications: lisinopril and atorvastatin, with missed statin doses."
+          }
+        ]
+      },
+      {
+        "category": "vital",
+        "label": "Triage vitals",
+        "value": "Blood pressure is 92/58 mmHg, heart rate 48/min, respiratory rate 20/min, oxygen saturation 95% on room air, temperature 36.8 C.",
+        "reveal_actions": ["request_exam_detail", "observe_patient"],
+        "tags": ["hypotension", "bradycardia", "vitals"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "vitals",
+            "quote": "BP 92/58, HR 48, RR 20, SpO2 95% RA, T 36.8 C."
+          }
+        ]
+      },
+      {
+        "category": "physical_exam",
+        "label": "Cardiopulmonary exam",
+        "value": "He is pale and diaphoretic. Lungs are clear and there is no asymmetric pulse deficit.",
+        "reveal_actions": ["request_exam_detail"],
+        "tags": ["diaphoresis", "lungs", "pulse deficit"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "exam",
+            "quote": "Pale, diaphoretic, clear lungs, no asymmetric pulse deficit."
+          }
+        ]
+      },
+      {
+        "category": "ecg",
+        "label": "Initial ECG",
+        "value": "ECG shows 2 mm ST-segment elevation in leads II, III, and aVF with reciprocal ST depression in I and aVL.",
+        "reveal_actions": ["order_ecg"],
+        "tags": ["ecg", "inferior leads", "st elevation", "reciprocal changes"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "ecg",
+            "quote": "2 mm ST elevation in II, III, aVF with reciprocal ST depression in I and aVL."
+          }
+        ]
+      },
+      {
+        "category": "ecg",
+        "label": "Right-sided ECG",
+        "value": "Right-sided leads show 1 mm ST elevation in V4R, suggesting right ventricular involvement.",
+        "reveal_actions": ["order_ecg"],
+        "tags": ["right sided ecg", "v4r", "right ventricular"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "ecg",
+            "quote": "Right-sided V4R has 1 mm ST elevation."
+          }
+        ]
+      },
+      {
+        "category": "lab",
+        "label": "Initial troponin",
+        "value": "Initial high-sensitivity troponin is mildly elevated at 68 ng/L.",
+        "reveal_actions": ["order_lab"],
+        "tags": ["troponin", "cardiac biomarker"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "labs",
+            "quote": "Initial hs-troponin 68 ng/L."
+          }
+        ]
+      },
+      {
+        "category": "lab",
+        "label": "Basic labs",
+        "value": "Creatinine is 1.0 mg/dL, potassium 4.2 mmol/L, and hemoglobin 14.6 g/dL.",
+        "reveal_actions": ["order_lab"],
+        "tags": ["creatinine", "potassium", "hemoglobin"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "labs",
+            "quote": "Cr 1.0, K 4.2, Hgb 14.6."
+          }
+        ]
+      },
+      {
+        "category": "imaging",
+        "label": "Chest radiograph",
+        "value": "Portable chest radiograph shows no widened mediastinum, edema, or focal consolidation.",
+        "reveal_actions": ["order_imaging"],
+        "tags": ["chest radiograph", "mediastinum", "edema"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "imaging",
+            "quote": "No widened mediastinum, pulmonary edema, or focal consolidation."
+          }
+        ]
+      },
+      {
+        "category": "treatment",
+        "label": "Antiplatelet therapy",
+        "value": "He receives aspirin and a P2Y12 loading dose while catheterization is activated.",
+        "reveal_actions": ["give_treatment"],
+        "tags": ["aspirin", "p2y12", "catheterization"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "treatment",
+            "quote": "Aspirin and P2Y12 load given with cath lab activation."
+          }
+        ]
+      },
+      {
+        "category": "treatment",
+        "label": "Fluids and nitrates",
+        "value": "A small IV fluid bolus is given and nitrates are avoided because of hypotension and right-sided ECG changes.",
+        "reveal_actions": ["give_treatment"],
+        "tags": ["fluids", "nitrates", "hypotension", "right ventricular"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "treatment",
+            "quote": "Small IV fluid bolus; nitrates avoided with hypotension and right-sided changes."
+          }
+        ]
+      },
+      {
+        "category": "consult",
+        "label": "Cardiology activation",
+        "value": "Interventional cardiology accepts the patient for immediate catheterization.",
+        "reveal_actions": ["request_consult"],
+        "tags": ["cardiology", "catheterization", "activation"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "consult",
+            "quote": "Interventional cardiology accepted for immediate catheterization."
+          }
+        ]
+      },
+      {
+        "category": "observation",
+        "label": "Repeat assessment",
+        "value": "After fluids, blood pressure improves to 104/64 mmHg but chest pressure persists.",
+        "reveal_actions": ["observe_patient"],
+        "tags": ["repeat vitals", "fluids", "persistent pain"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "reassessment",
+            "quote": "BP improved to 104/64 after fluids; chest pressure persisted."
+          }
+        ]
+      },
+      {
+        "category": "procedure",
+        "label": "Catheterization finding",
+        "value": "Coronary angiography identifies an acute thrombotic occlusion of the proximal right coronary artery.",
+        "reveal_actions": ["request_pathology_detail"],
+        "tags": ["angiography", "right coronary artery", "occlusion"],
+        "provenance": [
+          {
+            "kind": "source_grounded_exact",
+            "locator": "procedure",
+            "quote": "Acute thrombotic occlusion of the proximal RCA."
+          }
+        ]
+      },
+      {
+        "category": "differential_tag",
+        "label": "Dangerous differential",
+        "value": "A time-sensitive coronary syndrome should remain high on the differential with this pressure-like pain and diaphoresis pattern.",
+        "reveal_actions": ["submit_differential"],
+        "tags": ["coronary", "dangerous chest pain"],
+        "provenance": [
+          {
+            "kind": "approved_synthetic_safe_connective_detail",
+            "locator": "derived teaching",
+            "quote": "Pressure-like chest pain and diaphoresis support dangerous coronary syndrome consideration."
+          }
+        ]
+      },
+      {
+        "category": "hint",
+        "label": "Hint 1",
+        "value": "Prioritize the first test that can localize time-sensitive ischemia at the bedside.",
+        "reveal_actions": ["request_hint"],
+        "tags": ["hint", "ecg", "ischemia"],
+        "provenance": [
+          {
+            "kind": "approved_synthetic_safe_connective_detail",
+            "locator": "derived hint",
+            "quote": "Bedside ECG is key in pressure-like chest pain with diaphoresis."
+          }
+        ]
+      },
+      {
+        "category": "hint",
+        "label": "Hint 2",
+        "value": "The combination of hypotension, bradycardia, and inferior-lead changes should affect medication choices.",
+        "reveal_actions": ["request_hint"],
+        "tags": ["hint", "bradycardia", "hypotension"],
+        "provenance": [
+          {
+            "kind": "approved_synthetic_safe_connective_detail",
+            "locator": "derived hint",
+            "quote": "Hypotension, bradycardia, inferior changes alter treatment choices."
+          }
+        ]
+      },
+      {
+        "category": "diagnosis",
+        "label": "Final diagnosis",
+        "value": "Inferior ST-elevation myocardial infarction with right ventricular involvement.",
+        "spoiler": true,
+        "reveal_actions": [],
+        "tags": ["diagnosis"],
+        "provenance": [
+          {
+            "kind": "source_grounded_paraphrase",
+            "locator": "diagnosis",
+            "quote": "Final diagnosis: inferior ST-elevation myocardial infarction with right ventricular involvement."
+          }
+        ]
+      }
+    ]
+  }
+}

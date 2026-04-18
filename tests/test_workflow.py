@@ -1,3 +1,5 @@
+import pytest
+
 from diagnostician.core.schemas import (
     ActionType,
     DisplayBlock,
@@ -10,6 +12,8 @@ from diagnostician.core.schemas import (
     ValidationStatus,
 )
 from diagnostician.core.config import Settings
+from diagnostician.ingestion.parser import LocalCaseIngestor
+from diagnostician.services.store import InMemoryGameStore
 from diagnostician.services.workflows import DiagnosticWorkflow
 from diagnostician.services.validation import validate_display_blocks
 
@@ -139,7 +143,7 @@ def test_case_selection_supports_direct_filters_and_replay_avoidance():
     store = demo_store()
     workflow = DiagnosticWorkflow(store=store, llm_client=FakeLLMClient())
     cases = store.list_approved_cases()
-    assert len(cases) == 8
+    assert len(cases) == 10
 
     selected = cases[-1]
     direct = workflow.create_run(RunCreateRequest(case_id=selected.id))
@@ -151,6 +155,55 @@ def test_case_selection_supports_direct_filters_and_replay_avoidance():
     excluded = [case.id for case in cases[:-1]]
     replay_aware = workflow.create_run(RunCreateRequest(exclude_case_ids=excluded, randomize=False))
     assert replay_aware.run_state.case_id == cases[-1].id
+
+
+def test_automatically_parsed_multicare_case_is_playable(tmp_path):
+    pa = pytest.importorskip("pyarrow")
+    pq = pytest.importorskip("pyarrow.parquet")
+    source = tmp_path / "cases.parquet"
+    table = pa.Table.from_pylist(
+        [
+            {
+                "article_id": "PMC222222",
+                "cases": [
+                    {
+                        "age": 64,
+                        "case_id": "PMC222222_01",
+                        "case_text": (
+                            "A 64-year-old male presented with fever and productive cough. "
+                            "Chest radiograph showed right lower-lobe consolidation. "
+                            "White blood cell count was elevated. "
+                            "Sputum culture confirmed Streptococcus pneumoniae pneumonia."
+                        ),
+                        "gender": "Male",
+                    }
+                ],
+            }
+        ]
+    )
+    pq.write_table(table, source)
+    result = next(LocalCaseIngestor(llm_client=FakeLLMClient()).ingest_path_many(source))
+    assert result.truth_case is not None
+
+    store = InMemoryGameStore()
+    store.save_source_document(result.source_document)
+    store.save_truth_case(result.truth_case, result.embeddings)
+    workflow = DiagnosticWorkflow(store=store, llm_client=FakeLLMClient())
+
+    created = workflow.create_run(RunCreateRequest(case_id=result.truth_case.id))
+    assert created.run_state.status == RunStatus.ACTIVE
+    assert "pneumonia" not in _response_text(created)
+
+    imaging = workflow.handle_turn(
+        created.run_state.id,
+        PlayerTurnRequest(action_type=ActionType.ORDER_IMAGING, target="chest radiograph"),
+    )
+    assert imaging.validation.status == ValidationStatus.PASS
+    review = workflow.submit_diagnosis(
+        created.run_state.id,
+        DiagnosisSubmission(diagnosis="Streptococcus pneumoniae pneumonia", rationale="Culture and radiograph"),
+    )
+    assert review.player_score.correct is True
 
 
 def test_reveal_logic_requires_relevant_target_match():
@@ -171,6 +224,82 @@ def test_reveal_logic_requires_relevant_target_match():
         PlayerTurnRequest(action_type=ActionType.ORDER_IMAGING, target="CT pulmonary angiography"),
     )
     assert any(fact.label == "CT pulmonary angiography" for fact in ct.newly_revealed_facts)
+
+
+def test_mvp_actions_reveal_ecg_treatment_consult_and_observation_paths():
+    store = demo_store()
+    case = next(case for case in store.list_approved_cases() if "ST-elevation" in case.final_diagnosis)
+    workflow = DiagnosticWorkflow(store=store, llm_client=FakeLLMClient())
+    created = workflow.create_run(RunCreateRequest(case_id=case.id))
+
+    ecg = workflow.handle_turn(
+        created.run_state.id,
+        PlayerTurnRequest(action_type=ActionType.ORDER_ECG, target="initial ECG"),
+    )
+    assert ecg.validation.status == ValidationStatus.PASS
+    assert any(fact.category.value == "ecg" for fact in ecg.newly_revealed_facts)
+
+    treatment = workflow.handle_turn(
+        created.run_state.id,
+        PlayerTurnRequest(action_type=ActionType.GIVE_TREATMENT, target="aspirin and P2Y12"),
+    )
+    assert treatment.run_state.interventions
+    assert any("aspirin" in fact.value.casefold() for fact in treatment.newly_revealed_facts)
+
+    consult = workflow.handle_turn(
+        created.run_state.id,
+        PlayerTurnRequest(action_type=ActionType.REQUEST_CONSULT, target="cardiology"),
+    )
+    assert consult.run_state.consults
+    assert any(fact.category.value == "consult" for fact in consult.newly_revealed_facts)
+
+    observed = workflow.handle_turn(
+        created.run_state.id,
+        PlayerTurnRequest(action_type=ActionType.OBSERVE_PATIENT, target="repeat vitals"),
+    )
+    assert observed.run_state.observations
+    assert any(fact.category.value in {"observation", "vital"} for fact in observed.newly_revealed_facts)
+
+
+def test_irrelevant_reasonable_request_returns_specific_non_reveal_feedback():
+    store = populated_store()
+    workflow = DiagnosticWorkflow(store=store, llm_client=FakeLLMClient())
+    created = workflow.create_run(RunCreateRequest())
+
+    response = workflow.handle_turn(
+        created.run_state.id,
+        PlayerTurnRequest(action_type=ActionType.REQUEST_CONSULT, target="cardiology"),
+    )
+
+    assert response.validation.status == ValidationStatus.PASS
+    assert response.newly_revealed_facts == []
+    assert response.display_blocks[0].title == "Consult Not Documented"
+    assert "consult note" in response.display_blocks[0].body.casefold()
+
+
+def test_hints_are_progressive_and_then_fall_back_to_source_facts():
+    store = demo_store()
+    case = next(case for case in store.list_approved_cases() if "ST-elevation" in case.final_diagnosis)
+    workflow = DiagnosticWorkflow(store=store, llm_client=FakeLLMClient())
+    created = workflow.create_run(RunCreateRequest(case_id=case.id))
+
+    first = workflow.handle_turn(
+        created.run_state.id,
+        PlayerTurnRequest(action_type=ActionType.REQUEST_HINT, target="stuck"),
+    )
+    second = workflow.handle_turn(
+        created.run_state.id,
+        PlayerTurnRequest(action_type=ActionType.REQUEST_HINT, target="still stuck"),
+    )
+    third = workflow.handle_turn(
+        created.run_state.id,
+        PlayerTurnRequest(action_type=ActionType.REQUEST_HINT, target="one more"),
+    )
+
+    assert [fact.label for fact in first.newly_revealed_facts] == ["Hint 1"]
+    assert [fact.label for fact in second.newly_revealed_facts] == ["Hint 2"]
+    assert third.newly_revealed_facts
+    assert third.newly_revealed_facts[0].category.value != "hint"
 
 
 def test_validation_blocks_hidden_fact_text_leakage():
@@ -247,6 +376,9 @@ def test_submit_diagnosis_scores_and_creates_review():
 
     assert review.player_score.correct is True
     assert review.player_score.final_score > 70
+    assert review.player_diagnosis == "acute pulmonary embolism"
+    assert review.reasoning_path
+    assert review.missed_key_findings
     assert review.diagnosis == "Pulmonary embolism"
     assert any("Final Diagnosis" == block.title for block in review.turn_timeline)
     assert workflow.get_snapshot(created.run_state.id).run_state.status == RunStatus.COMPLETE
@@ -269,6 +401,23 @@ def test_completed_run_does_not_accept_more_turn_progression():
     assert response.run_state.status == RunStatus.COMPLETE
     assert response.newly_revealed_facts == []
     assert response.display_blocks[0].title == "Run Complete"
+
+
+def test_abandon_run_stops_progression_and_snapshot_can_be_resumed_as_inactive():
+    store = populated_store()
+    workflow = DiagnosticWorkflow(store=store, llm_client=FakeLLMClient())
+    created = workflow.create_run(RunCreateRequest())
+
+    snapshot = workflow.abandon_run(created.run_state.id)
+    response = workflow.handle_turn(
+        created.run_state.id,
+        PlayerTurnRequest(action_type=ActionType.ORDER_LAB, target="D-dimer"),
+    )
+
+    assert snapshot.run_state.status == RunStatus.ABANDONED
+    assert response.run_state.status == RunStatus.ABANDONED
+    assert response.newly_revealed_facts == []
+    assert response.display_blocks[0].title == "Run Inactive"
 
 
 def _response_text(response) -> str:

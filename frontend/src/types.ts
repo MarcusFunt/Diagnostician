@@ -7,15 +7,26 @@ export interface CaseSummary {
   difficulty: string;
   specialty: string | null;
   tags: string[];
+  curation_notes: string[];
   created_at: string;
+}
+
+export interface CaseListResponse {
+  items: CaseSummary[];
+  next_cursor: string | null;
+  total_estimate: number;
 }
 
 export type ActionType =
   | "ask_patient_question"
   | "request_exam_detail"
   | "order_lab"
+  | "order_ecg"
   | "order_imaging"
   | "request_pathology_detail"
+  | "give_treatment"
+  | "request_consult"
+  | "observe_patient"
   | "submit_differential"
   | "request_hint";
 
@@ -24,8 +35,12 @@ export type DisplayBlockType =
   | "patient_dialogue"
   | "attending_comment"
   | "lab_result"
+  | "ecg_report"
   | "imaging_report"
   | "pathology_report"
+  | "treatment_update"
+  | "consult_note"
+  | "observation_update"
   | "warning"
   | "hint"
   | "system_status";
@@ -80,6 +95,9 @@ export interface RunState {
   stage: string;
   visible_fact_ids: UUID[];
   ordered_tests: string[];
+  interventions: string[];
+  consults: string[];
+  observations: string[];
   requested_clues: string[];
   submitted_differentials: string[];
   hint_count: number;
@@ -143,6 +161,8 @@ export interface ScoreSummary {
   testing_penalty: number;
   hint_penalty: number;
   dangerous_miss_penalty: number;
+  rationale_points: number;
+  missed_key_findings_penalty: number;
   rationale: string[];
 }
 
@@ -158,8 +178,14 @@ export interface CaseReview {
   run_id: UUID;
   case_id: UUID;
   diagnosis: string;
+  player_diagnosis: string;
+  player_rationale: string;
   player_score: ScoreSummary;
   key_findings: CaseFact[];
+  revealed_key_findings: CaseFact[];
+  missed_key_findings: CaseFact[];
+  reasoning_path: ReasoningStep[];
+  rationale_feedback: string[];
   teaching_points: string[];
   provenance: Provenance[];
   turn_timeline: DisplayBlock[];
@@ -169,4 +195,27 @@ export interface RunSnapshot {
   run_state: RunState;
   visible_evidence: VisibleEvidence;
   display_blocks: DisplayBlock[];
+}
+
+export interface ReasoningStep {
+  turn_index: number;
+  action_type: string;
+  target: string | null;
+  player_text: string;
+  response_titles: string[];
+  revealed_fact_labels: string[];
+}
+
+export interface HealthStatus {
+  ok: boolean;
+  ollama: {
+    ok: boolean;
+    models?: Array<{ name?: string }>;
+    error?: string;
+  };
+  generation_model: string;
+  case_generator_model: string;
+  medical_check_model: string;
+  medical_check_enabled: boolean;
+  embedding_model: string;
 }

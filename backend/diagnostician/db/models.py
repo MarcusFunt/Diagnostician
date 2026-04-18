@@ -56,6 +56,26 @@ class CaseRow(Base):
     )
 
 
+class IngestionRunRow(Base):
+    __tablename__ = "ingestion_runs"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=_uuid)
+    source_path: Mapped[str] = mapped_column(Text, nullable=False, index=True)
+    source_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    current_offset: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    accepted_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    playable_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    skipped_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    error_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    last_error: Mapped[str | None] = mapped_column(Text)
+    payload: Mapped[dict] = mapped_column(json_type(), nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
 class CaseFactRow(Base):
     __tablename__ = "case_facts"
 

@@ -1,7 +1,8 @@
 import type {
-  CaseSummary,
+  CaseListResponse,
   CaseReview,
   DiagnosisSubmission,
+  HealthStatus,
   PlayerTurnRequest,
   RunCreateRequest,
   RunSnapshot,
@@ -14,8 +15,37 @@ const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:800
   "",
 );
 
-export async function listCases(): Promise<CaseSummary[]> {
-  return request<CaseSummary[]>("/cases");
+export interface CaseListParams {
+  specialty?: string;
+  difficulty?: string;
+  q?: string;
+  limit?: number;
+  cursor?: string | null;
+}
+
+export async function listCases(params: CaseListParams = {}): Promise<CaseListResponse> {
+  const query = new URLSearchParams();
+  if (params.specialty) {
+    query.set("specialty", params.specialty);
+  }
+  if (params.difficulty) {
+    query.set("difficulty", params.difficulty);
+  }
+  if (params.q) {
+    query.set("q", params.q);
+  }
+  if (params.limit) {
+    query.set("limit", String(params.limit));
+  }
+  if (params.cursor) {
+    query.set("cursor", params.cursor);
+  }
+  const suffix = query.toString() ? `?${query}` : "";
+  return request<CaseListResponse>(`/cases${suffix}`);
+}
+
+export async function getHealth(): Promise<HealthStatus> {
+  return request<HealthStatus>("/health");
 }
 
 export async function createRun(payload: RunCreateRequest = {}): Promise<TurnResponse> {
@@ -27,6 +57,13 @@ export async function createRun(payload: RunCreateRequest = {}): Promise<TurnRes
 
 export async function getRun(runId: UUID): Promise<RunSnapshot> {
   return request<RunSnapshot>(`/runs/${runId}`);
+}
+
+export async function abandonRun(runId: UUID): Promise<RunSnapshot> {
+  return request<RunSnapshot>(`/runs/${runId}/abandon`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
 }
 
 export async function submitTurn(runId: UUID, payload: PlayerTurnRequest): Promise<TurnResponse> {
@@ -44,6 +81,10 @@ export async function submitDiagnosis(
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+export async function getReview(runId: UUID): Promise<CaseReview> {
+  return request<CaseReview>(`/runs/${runId}/review`);
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {

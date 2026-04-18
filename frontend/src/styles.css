@@ -172,6 +172,7 @@ ul {
 .case-picker,
 .selected-case-panel,
 .case-stream,
+.progress-panel,
 .evidence-panel,
 .differential-panel,
 .action-panel,
@@ -186,6 +187,7 @@ ul {
 .case-picker,
 .selected-case-panel,
 .case-stream,
+.progress-panel,
 .evidence-panel,
 .differential-panel,
 .action-panel,
@@ -203,7 +205,8 @@ ul {
 
 .action-panel,
 .diagnosis-panel,
-.selected-case-panel {
+.selected-case-panel,
+.previous-review-list {
   align-content: start;
   display: grid;
   gap: 0.85rem;
@@ -263,6 +266,12 @@ ul {
   gap: 0.8rem;
 }
 
+.load-more-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
 .case-card-grid {
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
 }
@@ -293,6 +302,7 @@ ul {
 
 .case-card-header span,
 .case-meta,
+.case-note,
 .token-list span,
 .token-list li,
 .mini-finding-list span {
@@ -307,6 +317,12 @@ ul {
 
 .case-meta {
   justify-self: start;
+}
+
+.case-note {
+  border-radius: 6px;
+  justify-self: start;
+  text-transform: none;
 }
 
 .display-block,
@@ -331,6 +347,22 @@ ul {
 
 .severity-error {
   border-left-color: #c23b4a;
+}
+
+.block-ecg_report {
+  border-left-color: #7b5ea7;
+}
+
+.block-treatment_update {
+  border-left-color: #17756b;
+}
+
+.block-consult_note {
+  border-left-color: #2f6f9f;
+}
+
+.block-observation_update {
+  border-left-color: #b35c26;
 }
 
 .block-header,
@@ -441,6 +473,39 @@ ul {
   margin-top: 0.5rem;
 }
 
+.progress-grid {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.progress-grid span {
+  background: #f7faf9;
+  border: 1px solid #d7dde2;
+  border-radius: 6px;
+  color: #343b42;
+  font-weight: 800;
+  padding: 0.55rem;
+}
+
+.compact-list {
+  color: #343b42;
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.75rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.previous-review-list {
+  border-top: 1px solid #e0e5e8;
+  margin-top: 0.4rem;
+  padding-top: 0.9rem;
+}
+
+.previous-review-list h3 {
+  font-size: 1rem;
+}
+
 .empty-state {
   color: #68737d;
   padding: 1rem 0;
@@ -465,6 +530,7 @@ ul {
     grid-template-columns: 1fr 1fr;
   }
 
+  .progress-panel,
   .evidence-panel,
   .review-panel {
     grid-column: 1 / -1;

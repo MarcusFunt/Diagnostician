@@ -7,10 +7,11 @@ Demo implementation of a React/Vite, source-grounded diagnostic reasoning game.
 - FastAPI backend with typed Pydantic contracts.
 - SQLAlchemy/Postgres persistence with Alembic migrations and pgvector support.
 - Local-source ingestion for de-identified JSON, Markdown, optional PDF files, and MultiCaRe Parquet case shards.
-- Eight approved demo cases with provenance, reveal policy, spoiler-locked diagnoses, and teaching points.
+- Ten approved demo cases with provenance, reveal policy, spoiler-locked diagnoses, and teaching points.
 - Backend-authoritative gameplay workflows for starting runs, turns, diagnosis submission, scoring, and case review.
 - Ollama adapters for generation and embeddings, with deterministic fallbacks for development when Ollama is unavailable.
 - React + Vite + TypeScript diagnostic workstation with case browsing, replay avoidance, evidence panels, differential tracking, and review.
+- MVP gameplay actions for history, exam, labs, ECG, imaging, procedures, treatments, consults, observation, progressive hints, and final diagnosis review.
 - Tests for ingestion, reveal policy, validation, scoring, and API behavior.
 
 ## Fast demo setup
@@ -58,11 +59,15 @@ hf download OpenMed/multicare-cases --repo-type dataset --include '*.parquet' --
 
 The parser also accepts the original `mauro-nievoff/MultiCaRe_Dataset` `cases.parquet` file. Avoid downloading the whole multimodal repo unless image assets are needed; the full repo includes multi-GB image archives.
 
-The ingestion CLI accepts the downloaded Parquet shard directly. MultiCaRe rows are imported as review-draft cases because the dataset has source narratives and demographics, but no verified final-diagnosis field.
+The ingestion CLI resolves MultiCaRe data local-first: root `cases.parquet`, then `data/multicare-cases/cases.parquet`, then an optional Hugging Face download. Automatically parsed rows with a diagnosis, safe opening facts, provenance, and enough revealable findings are approved for play; rows that cannot be structured are skipped into the ingestion report.
 
 ```powershell
-.\.venv\Scripts\python -m diagnostician.ingestion.cli ingest data/multicare-cases --limit 25
+.\.venv\Scripts\python -m diagnostician.ingestion.cli pull-multicare
+.\.venv\Scripts\python -m diagnostician.ingestion.cli ingest-multicare cases.parquet --batch-size 500 --resume --skip-embeddings
+.\.venv\Scripts\python -m diagnostician.ingestion.cli backfill-embeddings --batch-size 250
 ```
+
+Use `--limit` and `--offset` for small test batches. Embeddings can be backfilled later; they are not required for a parsed case to be playable.
 
 Ollama is expected at `http://localhost:11434`. If you do not use `scripts/setup-backend.ps1`, install and pull the configured models separately:
 
@@ -84,6 +89,13 @@ The lower-level ingestion command is still available for arbitrary sources:
 
 ```powershell
 .\.venv\Scripts\python -m pytest
+```
+
+Run the opt-in Docker Compose smoke test when Docker is available:
+
+```powershell
+$env:DIAGNOSTICIAN_RUN_DOCKER_SMOKE="1"
+.\.venv\Scripts\python -m pytest tests/test_smoke.py
 ```
 
 ## React client

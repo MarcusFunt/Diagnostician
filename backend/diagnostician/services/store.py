@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
+import random
 from typing import Protocol
 from uuid import UUID, uuid4
 
@@ -10,12 +11,16 @@ from diagnostician.core.windows_platform import disable_slow_wmi_platform_probe
 disable_slow_wmi_platform_probe()
 
 from sqlalchemy import delete, select
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from diagnostician.core.schemas import (
+    CaseSummary,
     CaseReview,
     DisplayBlock,
+    ReasoningStep,
     ReviewStatus,
+    RunCreateRequest,
     RunState,
     ScoreSummary,
     SourceDocument,
@@ -51,6 +56,18 @@ class GameStore(Protocol):
         self, specialty: str | None = None, difficulty: str | None = None
     ) -> list[TruthCase]: ...
 
+    def list_case_summaries(
+        self,
+        *,
+        specialty: str | None = None,
+        difficulty: str | None = None,
+        q: str | None = None,
+        limit: int = 24,
+        cursor: str | None = None,
+    ) -> tuple[list[CaseSummary], str | None, int]: ...
+
+    def select_approved_case(self, request: RunCreateRequest) -> TruthCase | None: ...
+
     def get_case(self, case_id: UUID) -> TruthCase: ...
 
     def save_run(self, run_state: RunState) -> RunState: ...
@@ -62,6 +79,8 @@ class GameStore(Protocol):
     ) -> UUID: ...
 
     def list_turn_blocks(self, run_id: UUID) -> list[DisplayBlock]: ...
+
+    def list_turn_steps(self, run_id: UUID) -> list[ReasoningStep]: ...
 
     def log_validation(
         self, run_id: UUID, report: ValidationReport, turn_id: UUID | None = None
@@ -109,6 +128,53 @@ class InMemoryGameStore:
         ]
         return sorted(cases, key=lambda case: case.created_at)
 
+    def list_case_summaries(
+        self,
+        *,
+        specialty: str | None = None,
+        difficulty: str | None = None,
+        q: str | None = None,
+        limit: int = 24,
+        cursor: str | None = None,
+    ) -> tuple[list[CaseSummary], str | None, int]:
+        offset = _parse_cursor(cursor)
+        limit = _bounded_limit(limit)
+        approved = self.list_approved_cases(specialty=specialty, difficulty=difficulty)
+        if q:
+            query = q.casefold()
+            approved = [
+                case
+                for case in approved
+                if query in case.title.casefold()
+                or query in case.chief_complaint.casefold()
+                or any(query in tag.casefold() for tag in case.tags)
+            ]
+        total = len(approved)
+        page = approved[offset : offset + limit]
+        next_offset = offset + len(page)
+        next_cursor = str(next_offset) if next_offset < total else None
+        return [_case_summary(case) for case in page], next_cursor, total
+
+    def select_approved_case(self, request: RunCreateRequest) -> TruthCase | None:
+        if request.case_id is not None:
+            truth_case = self.get_case(request.case_id)
+            return truth_case if truth_case.approved_for_play else None
+
+        cases = self.list_approved_cases(
+            specialty=request.specialty,
+            difficulty=request.difficulty,
+        )
+        if request.exclude_case_ids:
+            excluded = set(request.exclude_case_ids)
+            filtered = [case for case in cases if case.id not in excluded]
+            if filtered:
+                cases = filtered
+        if not cases:
+            return None
+        if request.randomize:
+            return random.choice(cases)
+        return cases[0]
+
     def get_case(self, case_id: UUID) -> TruthCase:
         return self.cases[case_id]
 
@@ -140,6 +206,12 @@ class InMemoryGameStore:
                 for block in payload["response"].get("display_blocks", [])
             )
         return blocks
+
+    def list_turn_steps(self, run_id: UUID) -> list[ReasoningStep]:
+        return [
+            _turn_step_from_payload(index, payload.get("request", {}), payload.get("response", {}))
+            for index, payload in enumerate(self.turn_payloads.get(run_id, []), start=1)
+        ]
 
     def log_validation(
         self, run_id: UUID, report: ValidationReport, turn_id: UUID | None = None
@@ -232,6 +304,48 @@ class SqlAlchemyGameStore:
         rows = self.session.scalars(stmt.order_by(CaseRow.created_at)).all()
         return [TruthCase.model_validate(row.truth_payload) for row in rows]
 
+    def list_case_summaries(
+        self,
+        *,
+        specialty: str | None = None,
+        difficulty: str | None = None,
+        q: str | None = None,
+        limit: int = 24,
+        cursor: str | None = None,
+    ) -> tuple[list[CaseSummary], str | None, int]:
+        offset = _parse_cursor(cursor)
+        limit = _bounded_limit(limit)
+        stmt = _approved_case_row_stmt(specialty=specialty, difficulty=difficulty, q=q)
+        total = self.session.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+        rows = self.session.scalars(stmt.order_by(CaseRow.created_at).offset(offset).limit(limit)).all()
+        next_offset = offset + len(rows)
+        next_cursor = str(next_offset) if next_offset < total else None
+        return [_case_summary(TruthCase.model_validate(row.truth_payload)) for row in rows], next_cursor, total
+
+    def select_approved_case(self, request: RunCreateRequest) -> TruthCase | None:
+        if request.case_id is not None:
+            truth_case = self.get_case(request.case_id)
+            return truth_case if truth_case.approved_for_play else None
+
+        stmt = _approved_case_row_stmt(
+            specialty=request.specialty,
+            difficulty=request.difficulty,
+            q=None,
+        )
+        if request.exclude_case_ids:
+            stmt = stmt.where(CaseRow.id.notin_(request.exclude_case_ids))
+            if self.session.scalar(select(func.count()).select_from(stmt.subquery())) == 0:
+                stmt = _approved_case_row_stmt(
+                    specialty=request.specialty,
+                    difficulty=request.difficulty,
+                    q=None,
+                )
+        stmt = stmt.order_by(func.random() if request.randomize else CaseRow.created_at).limit(1)
+        row = self.session.scalars(stmt).first()
+        if row is None:
+            return None
+        return TruthCase.model_validate(row.truth_payload)
+
     def get_case(self, case_id: UUID) -> TruthCase:
         row = self.session.get(CaseRow, case_id)
         if row is None:
@@ -286,6 +400,12 @@ class SqlAlchemyGameStore:
             )
         return blocks
 
+    def list_turn_steps(self, run_id: UUID) -> list[ReasoningStep]:
+        return [
+            _turn_step_from_payload(index, row.request_payload, row.response_payload)
+            for index, row in enumerate(self.turn_payloads(run_id), start=1)
+        ]
+
     def log_validation(
         self, run_id: UUID, report: ValidationReport, turn_id: UUID | None = None
     ) -> None:
@@ -309,3 +429,81 @@ class SqlAlchemyGameStore:
         if row is None:
             return None
         return CaseReview.model_validate(row.payload)
+
+
+def _approved_case_row_stmt(
+    *,
+    specialty: str | None = None,
+    difficulty: str | None = None,
+    q: str | None = None,
+):
+    stmt = select(CaseRow).where(CaseRow.review_status == ReviewStatus.APPROVED.value)
+    if specialty is not None:
+        stmt = stmt.where(CaseRow.specialty == specialty)
+    if difficulty is not None:
+        stmt = stmt.where(CaseRow.difficulty == difficulty)
+    if q:
+        like = f"%{q}%"
+        stmt = stmt.where(
+            or_(
+                CaseRow.title.ilike(like),
+                CaseRow.specialty.ilike(like),
+                CaseRow.difficulty.ilike(like),
+            )
+        )
+    return stmt
+
+
+def _case_summary(case: TruthCase) -> CaseSummary:
+    diagnosis_terms = {_normalize_tag(term) for term in [case.final_diagnosis, *case.diagnosis_aliases]}
+    safe_tags = [tag for tag in case.tags if _normalize_tag(tag) not in diagnosis_terms]
+    return CaseSummary(
+        id=case.id,
+        title=case.title,
+        chief_complaint=case.chief_complaint,
+        difficulty=case.difficulty,
+        specialty=case.specialty,
+        tags=safe_tags,
+        curation_notes=case.curation_notes,
+        created_at=case.created_at,
+    )
+
+
+def _turn_step_from_payload(index: int, request_payload: dict, response_payload: dict) -> ReasoningStep:
+    request = request_payload.get("request") if request_payload.get("action_type") == "submit_diagnosis" else request_payload
+    request = request if isinstance(request, dict) else {}
+    blocks = response_payload.get("display_blocks", [])
+    revealed = response_payload.get("newly_revealed_facts", [])
+    return ReasoningStep(
+        turn_index=index,
+        action_type=str(request_payload.get("action_type") or request.get("action_type") or "unknown"),
+        target=request.get("target") if isinstance(request.get("target"), str) else None,
+        player_text=str(request.get("player_text") or request.get("diagnosis") or ""),
+        response_titles=[
+            str(block.get("title"))
+            for block in blocks
+            if isinstance(block, dict) and block.get("title")
+        ],
+        revealed_fact_labels=[
+            str(fact.get("label"))
+            for fact in revealed
+            if isinstance(fact, dict) and fact.get("label")
+        ],
+    )
+
+
+def _parse_cursor(cursor: str | None) -> int:
+    if cursor is None or cursor == "":
+        return 0
+    try:
+        return max(0, int(cursor))
+    except ValueError:
+        return 0
+
+
+def _bounded_limit(limit: int) -> int:
+    return min(100, max(1, limit))
+
+
+def _normalize_tag(value: str) -> str:
+    return " ".join(value.casefold().replace("-", " ").split())

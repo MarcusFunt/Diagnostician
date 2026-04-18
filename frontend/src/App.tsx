@@ -1,12 +1,23 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { createRun, listCases, submitDiagnosis, submitTurn } from "./api";
+import {
+  abandonRun,
+  createRun,
+  getHealth,
+  getReview,
+  getRun,
+  listCases,
+  submitDiagnosis,
+  submitTurn,
+} from "./api";
 import type {
   ActionType,
   CaseFact,
   CaseReview,
   CaseSummary,
   DisplayBlock,
+  HealthStatus,
   PlayerTurnRequest,
+  RunSnapshot,
   RunState,
   TurnResponse,
   UUID,
@@ -41,6 +52,12 @@ const ACTIONS: ActionOption[] = [
     requestHint: "Add clinical context for the lab request.",
   },
   {
+    value: "order_ecg",
+    label: "Order ECG",
+    targetHint: "Initial ECG, repeat ECG, right-sided leads...",
+    requestHint: "What ECG should be reviewed?",
+  },
+  {
     value: "order_imaging",
     label: "Order imaging",
     targetHint: "Chest x-ray, CTA, ultrasound...",
@@ -51,6 +68,24 @@ const ACTIONS: ActionOption[] = [
     label: "Procedure detail",
     targetHint: "Endoscopy, pathology, procedure...",
     requestHint: "Which report or procedure detail should be reviewed?",
+  },
+  {
+    value: "give_treatment",
+    label: "Treat",
+    targetHint: "Fluids, antibiotics, aspirin, insulin...",
+    requestHint: "What intervention should be given?",
+  },
+  {
+    value: "request_consult",
+    label: "Consult",
+    targetHint: "Cardiology, surgery, urology, ICU...",
+    requestHint: "Who should be consulted and why?",
+  },
+  {
+    value: "observe_patient",
+    label: "Observe",
+    targetHint: "Repeat vitals, reassessment, clinical trajectory...",
+    requestHint: "What interval or response should be checked?",
   },
   {
     value: "submit_differential",
@@ -67,14 +102,25 @@ const ACTIONS: ActionOption[] = [
 ];
 
 const SEEN_CASES_KEY = "diagnostician.seenCaseIds";
+const ACTIVE_RUN_KEY = "diagnostician.activeRunId";
+const COMPLETED_RUNS_KEY = "diagnostician.completedRunIds";
+const SEEN_CASE_LIMIT = 200;
+const COMPLETED_RUN_LIMIT = 20;
+const CASE_PAGE_SIZE = 24;
 
 export default function App() {
   const [cases, setCases] = useState<CaseSummary[]>([]);
   const [selectedCaseId, setSelectedCaseId] = useState<UUID | "">("");
   const [specialtyFilter, setSpecialtyFilter] = useState("");
   const [difficultyFilter, setDifficultyFilter] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [caseCursor, setCaseCursor] = useState<string | null>(null);
+  const [totalCaseEstimate, setTotalCaseEstimate] = useState(0);
   const [avoidReplay, setAvoidReplay] = useState(true);
   const [seenCaseIds, setSeenCaseIds] = useState<UUID[]>(() => readSeenCases());
+  const [completedRunIds, setCompletedRunIds] = useState<UUID[]>(() =>
+    readStoredIds(COMPLETED_RUNS_KEY, COMPLETED_RUN_LIMIT),
+  );
 
   const [runState, setRunState] = useState<RunState | null>(null);
   const [blocks, setBlocks] = useState<DisplayBlock[]>([]);
@@ -88,6 +134,7 @@ export default function App() {
   const [status, setStatus] = useState("Choose a case.");
   const [error, setError] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(false);
+  const [health, setHealth] = useState<HealthStatus | null>(null);
 
   const selectedAction = useMemo(
     () => ACTIONS.find((action) => action.value === actionType) ?? DEFAULT_ACTION,
@@ -96,16 +143,6 @@ export default function App() {
 
   const specialties = useMemo(() => uniqueValues(cases.map((item) => item.specialty)), [cases]);
   const difficulties = useMemo(() => uniqueValues(cases.map((item) => item.difficulty)), [cases]);
-
-  const filteredCases = useMemo(
-    () =>
-      cases.filter(
-        (item) =>
-          (!specialtyFilter || item.specialty === specialtyFilter) &&
-          (!difficultyFilter || item.difficulty === difficultyFilter),
-      ),
-    [cases, difficultyFilter, specialtyFilter],
-  );
 
   const selectedCase = useMemo(
     () => cases.find((item) => item.id === selectedCaseId) ?? null,
@@ -119,23 +156,53 @@ export default function App() {
   const runId = runState?.id ?? null;
   const isComplete = runState?.status === "complete" || review !== null;
   const evidenceGroups = useMemo(() => groupEvidence(evidence), [evidence]);
+  const runProgress = useMemo(() => buildRunProgress(runState, evidence), [evidence, runState]);
 
-  const loadCaseLibrary = useCallback(async () => {
-    setStatus("Loading cases...");
+  const loadCaseLibrary = useCallback(async (cursor: string | null = null, append = false) => {
+    setStatus(append ? "Loading more cases..." : "Loading cases...");
     setError(null);
     try {
-      const items = await listCases();
-      setCases(items);
-      setStatus(items.length > 0 ? `${items.length} demo cases ready.` : "No demo cases available.");
+      const response = await listCases({
+        specialty: specialtyFilter || undefined,
+        difficulty: difficultyFilter || undefined,
+        q: searchQuery.trim() || undefined,
+        limit: CASE_PAGE_SIZE,
+        cursor,
+      });
+      setCases((current) =>
+        append ? uniqueCases([...current, ...response.items]) : response.items,
+      );
+      setCaseCursor(response.next_cursor);
+      setTotalCaseEstimate(response.total_estimate);
+      setStatus(
+        response.total_estimate > 0
+          ? `${response.total_estimate} playable cases available.`
+          : "No playable cases available.",
+      );
     } catch (caught) {
       setStatus("Backend unavailable");
       setError(caught instanceof Error ? caught.message : "Unable to load cases.");
     }
+  }, [difficultyFilter, searchQuery, specialtyFilter]);
+
+  useEffect(() => {
+    setSelectedCaseId("");
+    setCaseCursor(null);
+    void loadCaseLibrary(null, false);
+  }, [loadCaseLibrary]);
+
+  useEffect(() => {
+    void getHealth()
+      .then(setHealth)
+      .catch(() => setHealth(null));
   }, []);
 
   useEffect(() => {
-    void loadCaseLibrary();
-  }, [loadCaseLibrary]);
+    const storedRunId = window.localStorage.getItem(ACTIVE_RUN_KEY);
+    if (storedRunId) {
+      void resumeRunById(storedRunId);
+    }
+  }, []);
 
   const applyTurnResponse = useCallback((response: TurnResponse, replaceBlocks = false) => {
     setRunState(response.run_state);
@@ -144,15 +211,80 @@ export default function App() {
       replaceBlocks ? response.display_blocks : [...current, ...response.display_blocks],
     );
     setStatus(readValidationStatus(response));
+    if (response.run_state.status === "active") {
+      window.localStorage.setItem(ACTIVE_RUN_KEY, response.run_state.id);
+    } else {
+      window.localStorage.removeItem(ACTIVE_RUN_KEY);
+    }
   }, []);
 
   const rememberSeenCase = useCallback((caseId: UUID) => {
     setSeenCaseIds((current) => {
-      const next = current.includes(caseId) ? current : [...current, caseId];
+      const next = current.includes(caseId) ? current : [...current, caseId].slice(-SEEN_CASE_LIMIT);
       window.localStorage.setItem(SEEN_CASES_KEY, JSON.stringify(next));
       return next;
     });
   }, []);
+
+  function applySnapshot(snapshot: RunSnapshot, nextReview: CaseReview | null = null) {
+    setRunState(snapshot.run_state);
+    setEvidence(nextReview ? nextReview.key_findings : snapshot.visible_evidence.facts);
+    setBlocks(nextReview ? nextReview.turn_timeline : snapshot.display_blocks);
+    setReview(nextReview);
+    if (snapshot.run_state.status === "active") {
+      window.localStorage.setItem(ACTIVE_RUN_KEY, snapshot.run_state.id);
+      setStatus("Resumed saved run");
+    } else {
+      window.localStorage.removeItem(ACTIVE_RUN_KEY);
+      setStatus(snapshot.run_state.status === "complete" ? "Review ready" : "Run inactive");
+    }
+  }
+
+  async function resumeRunById(id: UUID) {
+    setIsBusy(true);
+    setError(null);
+    try {
+      const snapshot = await getRun(id);
+      if (snapshot.run_state.status === "complete") {
+        const nextReview = await getReview(id);
+        applySnapshot(snapshot, nextReview);
+        rememberCompletedRun(id);
+      } else if (snapshot.run_state.status === "active") {
+        applySnapshot(snapshot);
+      } else {
+        window.localStorage.removeItem(ACTIVE_RUN_KEY);
+      }
+    } catch (caught) {
+      window.localStorage.removeItem(ACTIVE_RUN_KEY);
+      setError(caught instanceof Error ? caught.message : "Unable to resume the saved run.");
+    } finally {
+      setIsBusy(false);
+    }
+  }
+
+  async function openStoredReview(id: UUID) {
+    setIsBusy(true);
+    setError(null);
+    setStatus("Opening review...");
+    try {
+      const [snapshot, nextReview] = await Promise.all([getRun(id), getReview(id)]);
+      applySnapshot(snapshot, nextReview);
+      rememberCompletedRun(id);
+    } catch (caught) {
+      setStatus("Review unavailable");
+      setError(caught instanceof Error ? caught.message : "Unable to open the saved review.");
+    } finally {
+      setIsBusy(false);
+    }
+  }
+
+  function rememberCompletedRun(id: UUID) {
+    setCompletedRunIds((current) => {
+      const next = [id, ...current.filter((item) => item !== id)].slice(0, COMPLETED_RUN_LIMIT);
+      window.localStorage.setItem(COMPLETED_RUNS_KEY, JSON.stringify(next));
+      return next;
+    });
+  }
 
   const startCase = useCallback(
     async (caseId: UUID | "" = selectedCaseId) => {
@@ -250,6 +382,8 @@ export default function App() {
       setReview(nextReview);
       setEvidence(nextReview.key_findings);
       setBlocks(nextReview.turn_timeline);
+      rememberCompletedRun(runId);
+      window.localStorage.removeItem(ACTIVE_RUN_KEY);
       setRunState((current) =>
         current === null
           ? current
@@ -269,6 +403,35 @@ export default function App() {
     }
   }
 
+  async function handleAbandonRun() {
+    if (runId === null) {
+      return;
+    }
+
+    setIsBusy(true);
+    setError(null);
+    setStatus("Abandoning run...");
+
+    try {
+      await abandonRun(runId);
+      window.localStorage.removeItem(ACTIVE_RUN_KEY);
+      setRunState(null);
+      setBlocks([]);
+      setEvidence([]);
+      setReview(null);
+      setDiagnosis("");
+      setRationale("");
+      setTarget("");
+      setPlayerText("");
+      setStatus("Run abandoned.");
+    } catch (caught) {
+      setStatus("Abandon failed");
+      setError(caught instanceof Error ? caught.message : "Unable to abandon the run.");
+    } finally {
+      setIsBusy(false);
+    }
+  }
+
   function returnToLibrary() {
     setRunState(null);
     setBlocks([]);
@@ -278,7 +441,7 @@ export default function App() {
     setRationale("");
     setTarget("");
     setPlayerText("");
-    setStatus(cases.length > 0 ? `${cases.length} demo cases ready.` : "Choose a case.");
+    setStatus(totalCaseEstimate > 0 ? `${totalCaseEstimate} playable cases available.` : "Choose a case.");
   }
 
   return (
@@ -293,6 +456,7 @@ export default function App() {
         </div>
         <div className="run-summary" aria-live="polite">
           <span className={`status-dot ${isBusy ? "status-dot-busy" : ""}`} />
+          <HealthPill health={health} />
           <span>{status}</span>
           {activeCase ? <span>{activeCase.title}</span> : null}
           {runState ? <span>Turn {runState.turn_count}</span> : null}
@@ -317,21 +481,27 @@ export default function App() {
 
       {runState === null ? (
         <StartScreen
-          cases={filteredCases}
-          allCasesCount={cases.length}
+          cases={cases}
+          allCasesCount={totalCaseEstimate}
           selectedCaseId={selectedCaseId}
           selectedCase={selectedCase}
           specialties={specialties}
           difficulties={difficulties}
           specialtyFilter={specialtyFilter}
           difficultyFilter={difficultyFilter}
+          searchQuery={searchQuery}
+          hasMoreCases={caseCursor !== null}
           avoidReplay={avoidReplay}
           seenCaseIds={seenCaseIds}
+          completedRunIds={completedRunIds}
           isBusy={isBusy}
           onSelectCase={setSelectedCaseId}
           onSpecialtyChange={setSpecialtyFilter}
           onDifficultyChange={setDifficultyFilter}
+          onSearchChange={setSearchQuery}
           onAvoidReplayChange={setAvoidReplay}
+          onLoadMore={() => void loadCaseLibrary(caseCursor, true)}
+          onOpenReview={(id) => void openStoredReview(id)}
           onStartRandom={() => void startCase("")}
           onStartSelected={() => void startCase(selectedCaseId)}
         />
@@ -350,6 +520,11 @@ export default function App() {
                   <button type="button" onClick={returnToLibrary} disabled={isBusy}>
                     Case library
                   </button>
+                  {!isComplete ? (
+                    <button type="button" onClick={() => void handleAbandonRun()} disabled={isBusy}>
+                      Abandon
+                    </button>
+                  ) : null}
                   <button type="button" onClick={() => void startCase("")} disabled={isBusy}>
                     Random case
                   </button>
@@ -364,6 +539,7 @@ export default function App() {
             </section>
 
             <aside className="side-panel" aria-label="Actions and evidence">
+              <RunProgressPanel progress={runProgress} runState={runState} />
               <EvidencePanel groups={evidenceGroups} />
 
               <section className="differential-panel" aria-labelledby="differential-title">
@@ -486,13 +662,19 @@ function StartScreen({
   difficulties,
   specialtyFilter,
   difficultyFilter,
+  searchQuery,
+  hasMoreCases,
   avoidReplay,
   seenCaseIds,
+  completedRunIds,
   isBusy,
   onSelectCase,
   onSpecialtyChange,
   onDifficultyChange,
+  onSearchChange,
   onAvoidReplayChange,
+  onLoadMore,
+  onOpenReview,
   onStartRandom,
   onStartSelected,
 }: {
@@ -504,13 +686,19 @@ function StartScreen({
   difficulties: string[];
   specialtyFilter: string;
   difficultyFilter: string;
+  searchQuery: string;
+  hasMoreCases: boolean;
   avoidReplay: boolean;
   seenCaseIds: UUID[];
+  completedRunIds: UUID[];
   isBusy: boolean;
   onSelectCase: (id: UUID | "") => void;
   onSpecialtyChange: (value: string) => void;
   onDifficultyChange: (value: string) => void;
+  onSearchChange: (value: string) => void;
   onAvoidReplayChange: (value: boolean) => void;
+  onLoadMore: () => void;
+  onOpenReview: (id: UUID) => void;
   onStartRandom: () => void;
   onStartSelected: () => void;
 }) {
@@ -520,7 +708,7 @@ function StartScreen({
         <div className="section-heading">
           <div>
             <p className="eyebrow">Case library</p>
-            <h2>{cases.length} available cases</h2>
+            <h2>{allCasesCount} available cases</h2>
           </div>
           <button type="button" onClick={onStartRandom} disabled={isBusy || allCasesCount === 0}>
             Start random case
@@ -528,6 +716,14 @@ function StartScreen({
         </div>
 
         <div className="filters">
+          <label>
+            Search
+            <input
+              value={searchQuery}
+              onChange={(event) => onSearchChange(event.target.value)}
+              placeholder="Title, specialty, difficulty..."
+            />
+          </label>
           <label>
             Specialty
             <select value={specialtyFilter} onChange={(event) => onSpecialtyChange(event.target.value)}>
@@ -577,12 +773,22 @@ function StartScreen({
                 <span className="case-meta">
                   {item.specialty ?? "general"} / {formatToken(item.difficulty)}
                 </span>
+                {item.curation_notes.length > 0 ? (
+                  <span className="case-note">{item.curation_notes[0]}</span>
+                ) : null}
               </button>
             ))
           ) : (
             <p className="empty-state">No cases match the selected filters.</p>
           )}
         </div>
+        {hasMoreCases ? (
+          <div className="load-more-row">
+            <button type="button" onClick={onLoadMore} disabled={isBusy}>
+              Load more cases
+            </button>
+          </div>
+        ) : null}
       </section>
 
       <aside className="selected-case-panel" aria-label="Selected case">
@@ -602,6 +808,7 @@ function StartScreen({
                 <span key={tag}>{tag}</span>
               ))}
             </div>
+            {selectedCase.curation_notes.length > 0 ? <p>{selectedCase.curation_notes[0]}</p> : null}
             <button type="button" onClick={onStartSelected} disabled={isBusy}>
               Start selected case
             </button>
@@ -614,6 +821,16 @@ function StartScreen({
             </button>
           </>
         )}
+        {completedRunIds.length > 0 ? (
+          <section className="previous-review-list" aria-label="Previous reviews">
+            <h3>Previous Reviews</h3>
+            {completedRunIds.slice(0, 5).map((id, index) => (
+              <button type="button" onClick={() => onOpenReview(id)} disabled={isBusy} key={id}>
+                Review {index + 1}
+              </button>
+            ))}
+          </section>
+        ) : null}
       </aside>
     </section>
   );
@@ -646,9 +863,53 @@ function EvidencePanel({ groups }: { groups: Array<[string, CaseFact[]]> }) {
   );
 }
 
+function HealthPill({ health }: { health: HealthStatus | null }) {
+  if (health === null) {
+    return <span>Runtime checking</span>;
+  }
+  if (!health.ollama.ok) {
+    return <span>Local model offline; deterministic mode</span>;
+  }
+  return <span>{health.medical_check_enabled ? "Medical audit on" : "Medical audit off"}</span>;
+}
+
+function RunProgressPanel({
+  progress,
+  runState,
+}: {
+  progress: ReturnType<typeof buildRunProgress>;
+  runState: RunState;
+}) {
+  return (
+    <section className="progress-panel" aria-labelledby="progress-title">
+      <div className="section-heading compact">
+        <div>
+          <p className="eyebrow">Run state</p>
+          <h2 id="progress-title">{formatToken(runState.stage)}</h2>
+        </div>
+      </div>
+      <div className="progress-grid">
+        <span>{runState.turn_count} turns</span>
+        <span>{progress.findingCount} findings</span>
+        <span>{runState.hint_count} hints</span>
+        <span>{progress.actionCount} actions logged</span>
+      </div>
+      {progress.actions.length > 0 ? (
+        <ol className="compact-list">
+          {progress.actions.slice(-6).map((item, index) => (
+            <li key={`${item}-${index}`}>{item}</li>
+          ))}
+        </ol>
+      ) : (
+        <p className="empty-state">No orders, treatments, consults, or observations logged yet.</p>
+      )}
+    </section>
+  );
+}
+
 function DisplayBlockCard({ block }: { block: DisplayBlock }) {
   return (
-    <article className={`display-block severity-${block.severity}`}>
+    <article className={`display-block severity-${block.severity} block-${block.type}`}>
       <div className="block-header">
         <h3>{block.title}</h3>
         <span>{formatToken(block.type)}</span>
@@ -700,12 +961,44 @@ function ReviewPanel({ review }: { review: CaseReview }) {
           <li key={point}>{point}</li>
         ))}
       </ul>
+      <h3>Reasoning feedback</h3>
+      <ul className="review-list">
+        {review.rationale_feedback.map((point) => (
+          <li key={point}>{point}</li>
+        ))}
+      </ul>
       <h3>Key findings</h3>
       <div className="mini-finding-list">
         {review.key_findings.map((fact) => (
           <span key={fact.id}>{fact.label}</span>
         ))}
       </div>
+      {review.missed_key_findings.length > 0 ? (
+        <>
+          <h3>Missed before final answer</h3>
+          <div className="mini-finding-list">
+            {review.missed_key_findings.map((fact) => (
+              <span key={fact.id}>{fact.label}</span>
+            ))}
+          </div>
+        </>
+      ) : null}
+      {review.reasoning_path.length > 0 ? (
+        <>
+          <h3>Path</h3>
+          <ol className="compact-list">
+            {review.reasoning_path.map((step) => (
+              <li key={step.turn_index}>
+                {formatToken(step.action_type)}
+                {step.target ? `: ${step.target}` : ""}
+                {step.revealed_fact_labels.length > 0
+                  ? ` -> ${step.revealed_fact_labels.join(", ")}`
+                  : ""}
+              </li>
+            ))}
+          </ol>
+        </>
+      ) : null}
     </section>
   );
 }
@@ -734,14 +1027,49 @@ function uniqueValues(values: Array<string | null>): string[] {
   return Array.from(new Set(values.filter((value): value is string => Boolean(value)))).sort();
 }
 
+function uniqueCases(values: CaseSummary[]): CaseSummary[] {
+  const seen = new Set<UUID>();
+  const unique: CaseSummary[] = [];
+  for (const item of values) {
+    if (seen.has(item.id)) {
+      continue;
+    }
+    seen.add(item.id);
+    unique.push(item);
+  }
+  return unique;
+}
+
 function readSeenCases(): UUID[] {
+  return readStoredIds(SEEN_CASES_KEY, SEEN_CASE_LIMIT);
+}
+
+function readStoredIds(key: string, limit: number): UUID[] {
   try {
-    const raw = window.localStorage.getItem(SEEN_CASES_KEY);
+    const raw = window.localStorage.getItem(key);
     const parsed: unknown = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed.filter((item): item is UUID => typeof item === "string") : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is UUID => typeof item === "string").slice(-limit)
+      : [];
   } catch {
     return [];
   }
+}
+
+function buildRunProgress(runState: RunState | null, evidence: CaseFact[]) {
+  if (runState === null) {
+    return { findingCount: 0, actionCount: 0, actions: [] as string[] };
+  }
+  const orders = runState.ordered_tests.map((item) => `Order: ${item}`);
+  const interventions = runState.interventions.map((item) => `Treat: ${item}`);
+  const consults = runState.consults.map((item) => `Consult: ${item}`);
+  const observations = runState.observations.map((item) => `Observe: ${item}`);
+  const actions = [...orders, ...interventions, ...consults, ...observations];
+  return {
+    findingCount: evidence.length,
+    actionCount: actions.length,
+    actions,
+  };
 }
 
 function formatToken(value: string): string {
