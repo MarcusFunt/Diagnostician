@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     llm_timeout_seconds: float = Field(default=600.0, gt=0)
     ollama_keep_alive: str | None = Field(default=None)
     generation_repair_attempts: int = Field(default=2, ge=0, le=5)
+    store_backend: str = Field(default="sqlalchemy")
+    demo_cases_path: str = Field(default="cases/source")
 
 
 @lru_cache

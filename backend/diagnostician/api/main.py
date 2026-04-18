@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Generator
+from pathlib import Path
 from uuid import UUID
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
 
 from diagnostician.core.config import get_settings
 from diagnostician.core.schemas import (
@@ -16,9 +17,10 @@ from diagnostician.core.schemas import (
     RunSnapshot,
     TurnResponse,
 )
-from diagnostician.db.session import get_db_session
+from diagnostician.db.session import SessionLocal
+from diagnostician.ingestion.parser import LocalCaseIngestor
 from diagnostician.llm.ollama_client import OllamaClient
-from diagnostician.services.store import GameStore, SqlAlchemyGameStore
+from diagnostician.services.store import GameStore, InMemoryGameStore, SqlAlchemyGameStore
 from diagnostician.services.workflows import DiagnosticWorkflow
 
 
@@ -32,9 +34,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+_memory_store: InMemoryGameStore | None = None
 
-def get_store(session: Session = Depends(get_db_session)) -> GameStore:
-    return SqlAlchemyGameStore(session)
+
+def get_store() -> Generator[GameStore, None, None]:
+    settings = get_settings()
+    if settings.store_backend.casefold() == "memory":
+        yield _get_memory_store()
+        return
+
+    with SessionLocal() as session:
+        yield SqlAlchemyGameStore(session)
 
 
 def get_workflow(store: GameStore = Depends(get_store)) -> DiagnosticWorkflow:
@@ -53,7 +63,37 @@ def health() -> dict:
         "medical_check_model": settings.medical_check_model,
         "medical_check_enabled": settings.medical_check_enabled,
         "embedding_model": settings.embedding_model,
+        "store_backend": settings.store_backend,
     }
+
+
+def _get_memory_store() -> InMemoryGameStore:
+    global _memory_store
+    if _memory_store is None:
+        _memory_store = _seed_memory_store()
+    return _memory_store
+
+
+def _seed_memory_store() -> InMemoryGameStore:
+    settings = get_settings()
+    cases_path = Path(settings.demo_cases_path)
+    store = InMemoryGameStore()
+    ingestor = LocalCaseIngestor(generate_embeddings=False)
+    case_paths = sorted(cases_path.glob("*.json"))
+    if not case_paths:
+        raise RuntimeError(f"No demo cases found in {cases_path}")
+
+    playable_count = 0
+    for case_path in case_paths:
+        result = ingestor.ingest_path(case_path)
+        store.save_source_document(result.source_document)
+        if result.truth_case is not None and result.report.playable:
+            store.save_truth_case(result.truth_case)
+            playable_count += 1
+
+    if playable_count == 0:
+        raise RuntimeError(f"No playable demo cases found in {cases_path}")
+    return store
 
 
 @app.get("/cases", response_model=CaseListResponse)

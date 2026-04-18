@@ -28,4 +28,6 @@ frontend/.vite/
 # Local runtime data
 data/
 logs/
+.setup-logs/
+.tools/
 *.parquet
